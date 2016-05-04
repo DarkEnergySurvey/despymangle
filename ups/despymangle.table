@@ -8,6 +8,5 @@ setupRequired(despydb 2.0.1+0)
 setupRequired(despyastro 0.3.7+0)
 setupRequired(despymisc 1.0.2+0)
 #setupRequired(pandas 0.15.2+1)
-
 envPrepend(PATH, ${PRODUCT_DIR}/bin)
 envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
