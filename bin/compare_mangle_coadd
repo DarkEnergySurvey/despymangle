@@ -1,0 +1,61 @@
+#! /usr/bin/env python
+
+import argparse
+import ast
+import os
+import sys
+import re
+
+import numpy as np
+import numpy.lib.recfunctions as rfn
+
+import despyastro
+import despydb.desdbi as desdbi
+from despymisc import miscutils
+
+import despymangle.compare_mangle_coadd as nc
+
+###################################################################
+def parse_args(argv):
+    """ Parse command line arguments """
+    parser = argparse.ArgumentParser(description='Run mangle codes on a single tile')
+    parser.add_argument('--coadd', action='store', required=True)
+    parser.add_argument('--compare_plot1', action='store', dest='fn_compare_plot1', required=False)
+    parser.add_argument('--compare_plot2', action='store', dest='fn_compare_plot2', required=False)
+
+    parser.add_argument('--mask_star', action='store', dest='fn_mask_star', help='Output file')
+    parser.add_argument('--mask_bleed', action='store', dest='fn_mask_bleed', help='Output file')
+    parser.add_argument('--molyswgt', action='store', dest='fn_molys_weight', help='Output file')
+
+    parser.add_argument('--manglebindir', action='store', required=False)
+
+    args = vars(parser.parse_args(argv))   # convert to dict
+
+    return args
+
+###################################################################
+def main(argv):
+    """ Entry point """
+    args = parse_args(argv)
+
+    if args['fn_compare_plot1'] is not None:
+        print '########## Creating comparison plot 1'
+        nc.make_comp(args['coadd'], args['fn_molys_weight'], 
+                     args['fn_mask_star'], args['fn_mask_bleed'],
+                     args['fn_compare_plot1'], 
+                     limitx=np.arange(0, 10000, 1), 
+                     limity=np.arange(0, 10000, 1))
+        print 'Done'
+
+    if args['fn_compare_plot2'] is not None:
+        print '########## Creating comparison plot 2'
+        nc.make_comp(args['coadd'], args['fn_molys_weight'], 
+                     args['fn_mask_star'], args['fn_mask_bleed'],
+                     args['fn_compare_plot2'], 
+                     limitx=np.arange(800, 1000, 1), 
+                     limity=np.arange(800, 1000, 1))
+        print 'Done'
+
+###################################################################
+if __name__ == '__main__':
+    main(sys.argv[1:])

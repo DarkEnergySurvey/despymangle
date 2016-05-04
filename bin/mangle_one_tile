@@ -1,0 +1,364 @@
+#! /usr/bin/env python
+
+import argparse
+import ast
+import os
+import sys
+import re
+
+import numpy as np
+import numpy.lib.recfunctions as rfn
+
+import despyastro
+import despydb.desdbi as desdbi
+from despymisc import miscutils
+
+import despymangle.make_ccdgons as mc
+import despymangle.make_ccdmolys as mm
+import despymangle.weight_molys as wm
+import despymangle.make_starmask as sm
+import despymangle.mangle_db as mdb
+import despymangle.compare_mangle_coadd as nc
+
+###################################################################
+def parse_args(argv):
+    """ Parse command line arguments """
+    parser = argparse.ArgumentParser(description='Run mangle codes on a single tile')
+    parser.add_argument('--des_services', action='store', help='')
+    parser.add_argument('--db_section', '-s', action='store',
+                        help='Must be specified if DES_DB_SECTION is not set in environment')
+    parser.add_argument('--schema', action='store', help='db schema')
+
+    parser.add_argument('--tilename', action='store', required=True)
+    parser.add_argument('--tileid', action='store', required=True)
+    parser.add_argument('--band', action='store', required=True)
+    parser.add_argument('--pfw_attempt_id', action='store', required=False,
+                        help='id for pfw_attempt for current multiepoch attempt')
+
+
+    parser.add_argument('--mrelease', action='store', dest='release', required=False)
+    parser.add_argument('--mproject', action='store', dest='project', required=False)
+    parser.add_argument('--mscheme', action='store', dest='scheme', required=False)
+    parser.add_argument('--res', action='store', required=False)
+    parser.add_argument('--snap', action='store', required=False)
+    parser.add_argument('--bigsnap', action='store', required=False)
+    parser.add_argument('--mtol', action='store', required=False)
+    parser.add_argument('--bands', action='store', required=False)
+    parser.add_argument('--band_dic', action='store', required=False)
+    parser.add_argument('--asperpix', action='store', required=False)
+    parser.add_argument('--aper', action='store', required=False)
+    parser.add_argument('--mzpglobal', action='store', required=False)
+    parser.add_argument('--starmaskval', action='store', required=False)
+    parser.add_argument('--trailmaskval', action='store', required=False)
+    parser.add_argument('--edgemaskval', action='store', required=False)
+    parser.add_argument('--starscale', action='store', required=False)
+    parser.add_argument('--dataseca', action='store', required=False)
+    parser.add_argument('--datasecb', action='store', required=False)
+    parser.add_argument('--border1', action='store', required=False)
+    parser.add_argument('--border2', action='store', required=False)
+
+    parser.add_argument('--list_redimg', action='store', required=True)
+    parser.add_argument('--list_nwgint', action='store', required=True)
+    parser.add_argument('--coadd', action='store', required=True)
+    parser.add_argument('--poltiles', action='store', help='Automatically set if wget_pols')
+    parser.add_argument('--poltolys', action='store', help='Automatically set if wget_pols')
+    parser.add_argument('--paramfile', action='store', required=False,
+                        help='file storing standard parameters')
+
+    parser.add_argument('--runn', action='store', help='Unique string for processing attempt')
+    parser.add_argument('--outputdir', action='store', required=False)
+    parser.add_argument('--cleanup', action='store', required=False)
+    parser.add_argument('--compare_plot1', action='store', dest='fn_compare_plot1', required=False)
+    parser.add_argument('--compare_plot2', action='store', dest='fn_compare_plot2', required=False)
+
+
+    parser.add_argument('--mask', action='store', dest='fn_mask', help='Output file')
+    parser.add_argument('--mask_star', action='store', dest='fn_mask_star', help='Output file')
+    parser.add_argument('--mask_bleed', action='store', dest='fn_mask_bleed', help='Output file')
+    parser.add_argument('--unbalk', action='store', dest='fn_unbalk', help='Output file')
+    parser.add_argument('--molyswgt', action='store', dest='fn_molys_weight', help='Output file')
+
+
+
+    parser.add_argument('--manglebindir', action='store', required=False)
+    parser.add_argument('--imgcsv', action='store', required=False)
+    parser.add_argument('--wget_pols', action='store_true',
+                        help='When manually running, fetches .pol files using wget')
+    parser.add_argument('--pol_wget_section', action='store', required=False,
+                        help='section in des_services file that contains wget information')
+    parser.add_argument('--logdir', action='store', required=False,
+                        help='where to redirect stdout/stderr if running manually')
+
+    args = vars(parser.parse_args(argv))   # convert to dict
+
+    return args
+
+
+###################################################################
+def mangle_setup(args):
+    """ Perform setup steps such as reading param file """
+    config = {}
+
+    # if paramfile specified, read config
+    if args['paramfile'] is not None:
+        with open(args['paramfile'], 'r') as paramfh:
+            line = paramfh.readline()
+            while line:
+                line = line.strip()
+
+                # handle line continuation
+                while line.endswith('\\'):
+                    line = line[:-1] + paramfh.readline().strip()
+
+                # delete comments
+                line = line.split('#')[0]
+
+                # skip comment line or empty line
+                if re.search(r"\S", line) and line:
+                    pat_key_val = r"^\s*(\S+)\s*=\s*(.+)\s*$"
+                    pat_match = re.search(pat_key_val, line)
+                    if pat_match is not None:
+                        config[pat_match.group(1).lower()] = pat_match.group(2)
+
+                line = paramfh.readline()
+
+    # add/override with command line args
+    for k,v in args.items():
+        if v is not None or k not in config:
+            config[k] = v
+
+    # check for required config values
+    for k in ['scheme', 'res']:
+        if k not in config:
+            raise KeyError('Missing %s key in params file' % k)
+
+    # convert band_dic (str) to actual dictionary
+    config['band_dic'] = ast.literal_eval(config['band_dic'])
+    config['bandnum'] = config['band_dic'][config['band']]
+
+    # convert str to int
+    for k in ['res', 'mzpglobal']:
+        config[k] = int(config[k])
+
+    # convert str to float
+    for k in ['aper', 'asperpix', 'starscale']:
+        config[k] = float(config[k])
+
+    # create commonly used config values that are composites
+    # of other config values
+    config['pix'] = '-P%s0,%d' % (config['scheme'], config['res'])
+    config['restag'] = ' _%d%s' % (config['res'], config['scheme'])
+
+    outdir = ''
+    if config['outputdir'] is not None:
+        miscutils.coremakedirs(config['outputdir'])
+        outdir = config['outputdir'] + '/'
+
+    # create default filenames if not provided on command line
+    if config['fn_unbalk'] is None: # for ccdmolys
+        config['fn_unbalk'] = outdir + '%s_ccdgons_time_%s.pol' % (config['runn'], config['band'])
+    if config['fn_mask'] is None:  # for ccdmolys
+        config['fn_mask'] = outdir + '%s_ccdmolys_time_%s.pol' % (config['runn'], config['band'])
+    if config['fn_mask_star'] is None:
+        config['fn_mask_star'] = outdir + '%s_starmask_%s.pol' % (config['runn'], config['band'])
+    if config['fn_mask_bleed'] is None:
+        config['fn_mask_bleed'] = outdir + '%s_bleedmask_%s.pol' % (config['runn'], config['band'])
+    if config['fn_molys_weight'] is None:
+        config['fn_molys_weight'] = outdir+'%s_molys_weight_%s.pol' % (config['runn'], config['band'])
+
+
+    if config['logdir'] is not None:
+        miscutils.coremakedirs(config['logdir'])
+
+    if config['schema'] is None:
+        config['schema'] = ''
+    elif not config['schema'].endswith('.'):
+        config['schema'] += '.'
+
+    return config
+
+
+###################################################################
+def wget_pol_files(config):
+    """ Use wget to retrieve needed .pol files if running manually """
+
+    from despyserviceaccess import serviceaccess
+    wgetinfo = serviceaccess.parse(config['des_services'], config['pol_wget_section'])
+    wgetauth = '--user=%s --password=%s' % (wgetinfo['user'], wgetinfo['password'])
+
+    pol_base_url = '%s/%s/%s_tiles%s.dpol/' % (wgetinfo['pol_url_root'],
+                                               config['project'],
+                                               config['project'],
+                                               config['restag'])
+    pol_tiles_filename = '%s_tiles%s.%s.pol' % (config['project'],
+                                                config['restag'],
+                                                config['tileid'])
+    os.system('wget %s %s/%s' % (wgetauth, pol_base_url, pol_tiles_filename))
+
+    pol_base_url = '%s/%s/%s_tolys%s.dpol/' % (config['pol_url_root'],
+                                               config['project'],
+                                               config['project'],
+                                               config['restag'])
+    pol_tolys_filename = '%s_tolys%s.%s.pol' % (config['project'],
+                                                config['restag'],
+                                                config['tileid'])
+    os.system('wget %s %s/%s' % (wgetauth, pol_base_url, pol_tolys_filename))
+
+    return pol_tiles_filename, pol_tolys_filename
+
+
+###################################################################
+def get_nwgint_info(inlist, dbi, schema):
+    """ Read information from input list file
+        and query DB for more """
+
+    # get information from input file
+    listinfo = {}
+    filenames = []    # ensure preserve order
+    with open(inlist, 'r') as infh:
+        for line in infh:
+            #print line
+            fullname = line.strip()
+            filename = miscutils.parse_fullname(fullname, miscutils.CU_PARSE_FILENAME)
+            filenames.append(filename)
+            listinfo[filename] = {'fullname': fullname}
+        
+    # get nwgint info from DB
+    nwgint_tab = mdb.get_nwgint_info(dbi, schema, filenames)
+
+    # add fullname from input file to the information grabbed from the DB
+    fullname = []
+    for i in range(len(nwgint_tab['FILENAME'])):
+        listfile = listinfo[nwgint_tab['FILENAME'][i]]
+        fullname.append(listfile['fullname'])
+
+    nwgint_tab['FULLNAME'] = np.array(fullname)
+
+    return nwgint_tab
+
+
+###################################################################
+def get_redimg_info(inlist, pfwidtemp, bandnum, dbi, schema):
+    """ Read information from input list file
+        and query DB for more """
+
+    # get information from input file
+    listinfo = {}
+    filenames = []    # ensure preserve order
+    with open(inlist, 'r') as infh:
+        for line in infh:
+            #print line
+            (fullname, mag_zero) = line.split(',')
+            filename = miscutils.parse_fullname(fullname, miscutils.CU_PARSE_FILENAME)
+            filenames.append(filename)
+            listinfo[filename] = {'fullname': fullname,
+                                  'mag_zero': float(mag_zero)}
+        
+    # get nwgint info from DB
+    Image_tab = mdb.get_redimg_info(dbi, schema, filenames)
+
+    # add mag_zero and fullname from input file to the information grabbed from the DB
+    # create unique id within a processing attempt of a tile for the red images
+    #      (several digits smaller than the file id used in the DB)
+    mag_zero = []
+    fullname = []
+    mangle_img_id = []
+    for i in range(len(Image_tab['FILENAME'])):
+        listfile = listinfo[Image_tab['FILENAME'][i]]
+        mag_zero.append(listfile['mag_zero'])
+        fullname.append(listfile['fullname'])
+        mangle_img_id.append(int('%s%s%05d' % (pfwidtemp, bandnum, i)))
+
+    Image_tab['MAG_ZERO'] = np.array(mag_zero)
+    Image_tab['FULLNAME'] = np.array(fullname)
+    Image_tab['MANGLE_IMG_ID'] = np.array(mangle_img_id)
+
+
+    return Image_tab
+
+
+
+###################################################################
+def run_mangle_workflow(config):
+    """ Controls the order of mangle code executions """
+
+    print 'Mangle for %s, doing tile %s' %(config['release'], config['tilename'])
+
+    #A ebi.extract_band_info(CCDs_filename, band,tilename,outputdir, logdir)
+    print '########## Getting image info1'
+    dbi = desdbi.DesDbi(config['des_services'], config['db_section'])
+
+    nwgint_tab = get_nwgint_info(config['list_nwgint'], dbi, config['schema'])
+    Image_tab = get_redimg_info(config['list_redimg'], config['pfw_attempt_id'], 
+                                config['bandnum'], dbi, config['schema'])
+
+    if config['imgcsv'] is not None:
+        # can't use numpy's to_csv because top level is dict instead of record
+        with open(config['imgcsv'], 'w') as csvfh:
+            keys = sorted(Image_tab.keys())
+            csvfh.write(','.join(keys) + '\n')
+            for i in range(len(Image_tab['FILENAME'])):
+                linearr = []
+                for k in keys:
+                    if Image_tab[k][i] is None:
+                        linearr.append('')
+                    else:
+                        linearr.append(str(Image_tab[k][i]))
+                csvfh.write(','.join(linearr) + '\n')
+                     
+
+    # set up gtt with red filenames for future queries
+    #mdb.load_gtt_red_from_nwgint(dbi, nwgint_tab['FILENAME'])
+    # query the DB to get information about the images
+    #Image_tab = mdb.get_redimg_info(dbi)
+
+    # Add optional skyvar plotting?
+
+    print '########## Launching make_ccdgons'
+    mc.ccdgons(config, Image_tab, nwgint_tab, dbi)
+
+    print '########## Launching make_ccdmolys'
+    mm.ccdmolys(config)
+    print 'Done'
+
+    print '########## Launching weightmolys'
+    wm.weightmolys(config, Image_tab)
+    print 'Done'
+
+    print '########## Launching make_starmask'
+    sm.starmask(config, Image_tab, dbi)
+    print 'Done'
+
+    #mg = pym.Mangle(outputdir+'/toto%s_molys_weight_%s.pol'%(tilename,band))
+    #star = pym.Mangle(outputdir+'/toto%s_starmask_%s.pol'%(tilename,band))
+    #bleed = pym.Mangle(outputdir+'/toto%s_bleedmask_%s.pol'%(tilename,band))
+    if config['fn_compare_plot1'] is not None:
+        print '########## Creating comparison plot 1'
+        nc.make_comp(config['coadd'], config['fn_molys_weight'], 
+                     config['fn_mask_star'], config['fn_mask_bleed'],
+                     config['fn_compare_plot1'], 
+                     limitx=np.arange(800, 1000, 1), limity=np.arange(800, 1000,1))
+        print 'Done'
+
+    if config['fn_compare_plot2'] is not None:
+        print '########## Creating comparison plot 2'
+        nc.make_comp(config['coadd'], config['fn_molys_weight'], 
+                     config['fn_mask_star'], config['fn_mask_bleed'],
+                     config['fn_compare_plot2'], 
+                     limitx=np.arange(800, 1000, 1), limity=np.arange(800, 1000,1))
+        print 'Done'
+
+    print 'Finished mangle'
+
+
+###################################################################
+def main(argv):
+    """ Entry point """
+    args = parse_args(argv)
+    config = mangle_setup(args)
+    print config
+    run_mangle_workflow(config)
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
