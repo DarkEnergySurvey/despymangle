@@ -18,7 +18,7 @@ import despymangle.make_ccdmolys as mm
 import despymangle.weight_molys as wm
 import despymangle.make_starmask as sm
 import despymangle.mangle_db as mdb
-import despymangle.compare_mangle_coadd as nc
+import despymangle.compare_mangle_coadd_fitsio as nc
 
 ###################################################################
 def parse_args(argv):

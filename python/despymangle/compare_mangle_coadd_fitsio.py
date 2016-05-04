@@ -19,13 +19,8 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
     data2,h2 = fitsio.read(coadd_fullname, ext=2, header=True)
     w2 = wcsutil.WCS(h2)
 
-    print "limitx=", limitx
-    print "limity=", limity
     A = np.array([limitx, limity])
     M = np.meshgrid(A[1], A[0])
-    print "A[1] =", A[1]
-    print "A[0] =", A[0]
-
 
     fig = pylab.figure(figsize=(30, 5))
 
@@ -38,15 +33,8 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
 
     N = M[0].flatten()
     P = M[1].flatten()
-    print "N = ", N
-    print "P = ", P
-    PN = np.array([P, N]).T
-    print "PN =", PN
-    print type(PN)
-    print PN.shape
 
     ra, dec = w2.image2sky(P, N)
-    print ra, dec 
 
     val = mg.weight(ra, dec)
     val2 = star.weight(ra, dec)
