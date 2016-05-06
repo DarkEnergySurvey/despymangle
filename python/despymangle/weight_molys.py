@@ -57,27 +57,29 @@ def weightmolys(config, Image_tab):
     #pfwidtemp = config['pfw_attempt_id']
     runn = config['runn']
     manglebindir = config['manglebindir']
+    fn_maglimmask = config['fn_maglims']
+    fn_weightmask = config['fn_molys_weight']
 
     log = None
     if 'logdir' in config and config['logdir'] is not None:
-        #log = logdir+'weight_molys_'+runn+'_'+band+'.log'
-        # why was this one using runn instead of tilename like others?
         log = config['logdir']+'weight_molys_'+tilename+'_'+band+'.log'
 
     print "calculating weights for molygons for %s tile %s (%s) %s band for run %s" % \
           (config['project'], tileid, tilename, band, runn)
 
-    fn_maglimmask = config['outputdir']+'/%s_molys_maglims_%s.pol'%(runn, band)
-    fn_weightmask = config['outputdir']+'/%s_molys_weight_%s.pol'%(runn, band)
 
-    fn_reduced = config['outputdir']+'/%s_molys_%s.red'%(runn, band)
-    fn_count = config['outputdir']+'/%s_molys_%s.count'%(runn, band)
-    fn_weight = config['outputdir']+'/%s_molys_%s.weight'%(runn, band)
-    fn_maglims = config['outputdir']+'/%s_molys_%s.maglims'%(runn, band)
-    fn_time = config['outputdir']+'/%s_molys_%s.time'%(runn, band)
-    fn_area = config['outputdir']+'/%s_molys_%s.area'%(runn, band)
+    outdir = ''
+    if config['outputdir'] is not None:
+        outdir = config['outputdir'] + '/'
+    fnprefix = outdir + config['molysprefix']
+    fn_reduced = fnprefix + '.red'
+    fn_count = fnprefix + '.count'
+    fn_weight = fnprefix + '.weight'
+    fn_maglims = fnprefix + '.maglims'
+    fn_time = fnprefix + '.time'
+    fn_area = fnprefix + '.area'
 
-    #fn_bitmask = config['outputdir']+'/%s_molys_%s.bitmask'%(runn, band)
+    #fn_bitmask = config['molysprefix'] + '.bitmask'
     #fn_starbitmask = config['outputdir']+'/%s_starbitmask_%s.pol'%(runn, band)
     ### copyfile(fn_starbitmask, 'jstarbitmask')
 
@@ -173,9 +175,6 @@ def weightmolys(config, Image_tab):
     mu.runcmd(cmd, manglebindir, log)
     copyfile(jfn_jmaglimmask, fn_maglimmask)
 
-
-
-    fnprefix = config['outputdir']+'/%s_molys_%s' % (runn, band)
     make_syste_masks('EXPTIME', Nmolys, fn_reduced, Image_tab, fnprefix)
     make_syste_masks('AIRMASS', Nmolys, fn_reduced, Image_tab, fnprefix)
     make_syste_masks('SKYBRITE', Nmolys, fn_reduced, Image_tab, fnprefix)
