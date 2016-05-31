@@ -18,7 +18,7 @@ import despymangle.make_ccdmolys as mm
 import despymangle.weight_molys as wm
 import despymangle.make_starmask as sm
 import despymangle.mangle_db as mdb
-import despymangle.compare_mangle_coadd as nc
+import despymangle.compare_mangle_coadd_fitsio as nc
 
 ###################################################################
 def parse_args(argv):
@@ -65,15 +65,11 @@ def parse_args(argv):
     parser.add_argument('--paramfile', action='store', required=False,
                         help='file storing standard parameters')
 
-    parser.add_argument('--molysprefix', action='store') 
-    parser.add_argument('--polprefix', action='store') 
-
     parser.add_argument('--runn', action='store', help='Unique string for processing attempt')
     parser.add_argument('--outputdir', action='store', required=False)
-
-
-    parser.add_argument('--cleanup', action='store', required=False,
-                        help='Y/N  whether to delete temporary files')
+    parser.add_argument('--cleanup', action='store', required=False)
+    parser.add_argument('--compare_plot1', action='store', dest='fn_compare_plot1', required=False)
+    parser.add_argument('--compare_plot2', action='store', dest='fn_compare_plot2', required=False)
 
 
     parser.add_argument('--mask', action='store', dest='fn_mask', help='Output file')
@@ -81,9 +77,8 @@ def parse_args(argv):
     parser.add_argument('--mask_bleed', action='store', dest='fn_mask_bleed', help='Output file')
     parser.add_argument('--unbalk', action='store', dest='fn_unbalk', help='Output file')
     parser.add_argument('--molyswgt', action='store', dest='fn_molys_weight', help='Output file')
-    parser.add_argument('--maglims', action='store', dest='fn_maglims', help='Output file')
-    parser.add_argument('--compare_plot1', action='store', dest='fn_compare_plot1', required=False)
-    parser.add_argument('--compare_plot2', action='store', dest='fn_compare_plot2', required=False)
+
+
 
 
     parser.add_argument('--manglebindir', action='store', required=False)
@@ -157,33 +152,20 @@ def mangle_setup(args):
 
     outdir = ''
     if config['outputdir'] is not None:
-        if not config['outputdir'].endswith('/'):
-            config['outputdir'] += '/'
         miscutils.coremakedirs(config['outputdir'])
-        outdir = config['outputdir']
-
-        if config['molysprefix'] is None:
-            config['molysprefix'] = config['runn'] + '_ ' + config['band'] + '_molys'
-        if config['polprefix'] is None:
-            config['polprefix'] = config['runn'] + '_' + config['band'] 
-
-    # make any directories needed for output molys files
-    mdir = os.path.dirname(config['molysprefix'])
-    miscutils.coremakedirs(mdir)
+        outdir = config['outputdir'] + '/'
 
     # create default filenames if not provided on command line
     if config['fn_unbalk'] is None: # for ccdmolys
-        config['fn_unbalk'] = outdir + config['polprefix'] + '_ccdgons_time.pol'
+        config['fn_unbalk'] = outdir + '%s_ccdgons_weight_%s.pol' % (config['runn'], config['band'])
     if config['fn_mask'] is None:  # for ccdmolys
-        config['fn_mask'] = outdir + config['polprefix']  + '_ccdmolys_time.pol'
+        config['fn_mask'] = outdir + '%s_ccdmolys_weight_%s.pol' % (config['runn'], config['band'])
     if config['fn_mask_star'] is None:
-        config['fn_mask_star'] = outdir + config['polprefix']  + '_starmask.pol'
+        config['fn_mask_star'] = outdir + '%s_starmask_%s.pol' % (config['runn'], config['band'])
     if config['fn_mask_bleed'] is None:
-        config['fn_mask_bleed'] = outdir + config['polprefix']  + '_bleedmask.pol'
+        config['fn_mask_bleed'] = outdir + '%s_bleedmask_%s.pol' % (config['runn'], config['band'])
     if config['fn_molys_weight'] is None:
-        config['fn_molys_weight'] = outdir + config['polprefix'] +'_molys_weight.pol'
-    if config['fn_maglims'] is None:
-        config['fn_maglims'] = outdir + config['polprefix'] +'_maglims.pol'
+        config['fn_molys_weight'] = outdir+'%s_molys_weight_%s.pol' % (config['runn'], config['band'])
 
 
     if config['logdir'] is not None:
@@ -336,6 +318,10 @@ def run_mangle_workflow(config):
     print '########## Launching make_ccdgons'
     mc.ccdgons(config, Image_tab, nwgint_tab, dbi)
 
+    print Image_tab['MAG_ZERO']
+    print "config['pfw_attempt_id'] =", config['pfw_attempt_id'] 
+    print config['asperpix']
+
     print '########## Launching make_ccdmolys'
     mm.ccdmolys(config)
     print 'Done'
@@ -348,20 +334,25 @@ def run_mangle_workflow(config):
     sm.starmask(config, Image_tab, dbi)
     print 'Done'
 
+    #mg = pym.Mangle(outputdir+'/toto%s_molys_weight_%s.pol'%(tilename,band))
+    #star = pym.Mangle(outputdir+'/toto%s_starmask_%s.pol'%(tilename,band))
+    #bleed = pym.Mangle(outputdir+'/toto%s_bleedmask_%s.pol'%(tilename,band))
     if config['fn_compare_plot1'] is not None:
         print '########## Creating comparison plot 1'
         nc.make_comp(config['coadd'], config['fn_molys_weight'], 
                      config['fn_mask_star'], config['fn_mask_bleed'],
                      config['fn_compare_plot1'], 
-                     limitx=np.arange(800, 1000, 1), limity=np.arange(800, 1000,1))
+                     limitx=np.arange(000, 10000, 10), limity=np.arange(00, 10000,10))
         print 'Done'
 
-    if config['fn_compare_plot2'] is not None:
+    if config['fn_compare_plot2'] is not  None:
         print '########## Creating comparison plot 2'
+        r1=np.random.randint(0, 10000-200)
+        r2=np.random.randint(0, 10000-200)
         nc.make_comp(config['coadd'], config['fn_molys_weight'], 
                      config['fn_mask_star'], config['fn_mask_bleed'],
                      config['fn_compare_plot2'], 
-                     limitx=np.arange(800, 1000, 1), limity=np.arange(800, 1000,1))
+                     limitx=np.arange(r1, r1+200, 1), limity=np.arange(r2, r2+200,1))
         print 'Done'
 
     print 'Finished mangle'
