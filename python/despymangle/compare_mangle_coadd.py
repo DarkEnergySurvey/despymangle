@@ -63,7 +63,7 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
     rap = np.ma.masked_values(rap, -1)
 
     pylab.subplot(144)
-    pylab.pcolormesh(A[0], A[1], rap, vmin=0.9, vmax=1.1)
+    pylab.pcolormesh(A[0], A[1], rap, vmin=0.95, vmax=1.05)
     pylab.colorbar()
     pylab.title('Ratio (Coadd / Mangle)')
 
