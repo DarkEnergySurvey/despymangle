@@ -5,6 +5,24 @@ from shutil import copyfile
 import despymangle.mangle_utils as mu
 
 ######################################################################
+def id2skyvar(Image_tab, ids):
+    ### return the bood skyvar whether the ccdgons is A or  B
+
+    skyvars = []
+    for one_id in ids:
+        # drop last digit which means sec A vs B of image
+        img_id = int(str(one_id)[:-1])
+
+        is_AB=int(str(one_id)[-1])
+
+        idx = np.where(Image_tab["MANGLE_IMG_ID"] == img_id)[0][0]
+        if is_AB==0:
+            skyvars.append(Image_tab["SKYVARA"][idx])
+        if is_AB==1:
+            skyvars.append(Image_tab["SKYVARB"][idx])
+    return skyvars
+
+######################################################################
 def id2indices(Image_tab, ids):
     
     indices = []
@@ -19,21 +37,25 @@ def id2indices(Image_tab, ids):
     return indices
 
 ######################################################################
-def make_syste_masks(keyword, Nmolys, fn_reduced, Image_tab, fnprefix):
+def make_syste_masks(keyword, config, Nmolys, fn_reduced, Image_tab, fnprefix):
     # 6 as we want sum, min, max, median, mean and weightavg
     tab_exptime = np.zeros((6, Nmolys))
     f = open(fn_reduced)
-    for i in range(Nmolys):
+    for i in range(Nmolys):   # for each molygon
         line = f.readline().strip()
         #ids = np.int32(np.array(line.split()[2:]))
-        ids = line.split()[2:]
-        indices = id2indices(Image_tab, ids)
+        ids = line.split()[2:]    ### this all the ids of the ccdgons.
+        indices = id2indices(Image_tab, ids)  ## indices is the indices in image_Tab which corresponds to the ccdgons
+        skyvars= id2skyvar(Image_tab, ids)
+
         tab_exptime[0, i] = np.sum(Image_tab[keyword][indices])
         tab_exptime[1, i] = np.min(Image_tab[keyword][indices])
         tab_exptime[2, i] = np.max(Image_tab[keyword][indices])
         tab_exptime[3, i] = np.median(Image_tab[keyword][indices])
         tab_exptime[4, i] = np.mean(Image_tab[keyword][indices])
-        ####       tab_exptime[5, i] = np.sum(Image_tab[keyword][indices])
+
+        weights = skyvars * 100 **   ((config['mzpglobal']-Image_tab['MAG_ZERO'][indices])/2.5)
+        tab_exptime[5, i] = np.sum(Image_tab[keyword][indices] * weights)/np.sum(weights)
 
     f.close()
     fnprefix += '_' + keyword
@@ -42,7 +64,7 @@ def make_syste_masks(keyword, Nmolys, fn_reduced, Image_tab, fnprefix):
     np.savetxt(fnprefix+'.MAX', tab_exptime[2, :])
     np.savetxt(fnprefix+'.MEDIAN', tab_exptime[3, :])
     np.savetxt(fnprefix+'.MEAN', tab_exptime[4, :])
-    ##np.savetxt(fnprefix+'.WMEAN', tab_exptime[5, :])
+    np.savetxt(fnprefix+'.WMEAN', tab_exptime[5, :])
 
 
 ######################################################################
@@ -85,10 +107,10 @@ def weightmolys(config, Image_tab):
 
     #find midpoints of mask polygons
 
-    jfn_mask = 'jmask_%s_%s' % (tileid, band)
+    jfn_mask = 'jmask_%s_%s' % (tileid, band)  ### jfn_mask is a copy of the ccdmolys_weight.pol
     copyfile(config['fn_mask'], jfn_mask)
 
-    jfn_mid = 'jmid_%s_%s' % (tileid, band)
+    jfn_mid = 'jmid_%s_%s' % (tileid, band)    ### jfn_mid contains the midpoint of the molygons
     cmd = 'poly2poly -om %s %s' % (jfn_mask, jfn_mid)
     mu.runcmd(cmd, manglebindir, log)
 
@@ -103,6 +125,7 @@ def weightmolys(config, Image_tab):
     jfn_reduced = 'jreduced_%s_%s' % (tileid, band)
     os.system('tail -n +2 %s > %s' % (jfn_f, jfn_reduced))
 
+    #### get the nuumber of CCDgons per ccdmolygon
     jfn_count = 'jcount_%s_%s' % (tileid, band)
     os.system("awk '{print NF}' %s  > %s" % (jfn_reduced, jfn_count))
 
@@ -129,9 +152,10 @@ def weightmolys(config, Image_tab):
     jcount = np.loadtxt(fn_count)
     Nmolys = len(jcount)
 
-### Do coadd weigthing
+### Do coadd weighting
 
     ### get for each center of molygons the lists of SE weights
+    jfn_f = 'jSE_w_%s_%s' % (tileid, band)
     cmd = 'polyid -W %s %s %s' % (jfn_unbalk, jfn_mid, jfn_f)
     mu.runcmd(cmd, manglebindir, log)
 
@@ -141,17 +165,18 @@ def weightmolys(config, Image_tab):
     aaa = open(jfn_fs).readlines()
     Nmolys = len(aaa)
     print  'There are %d molys in this tile'%Nmolys
-    zzz = np.zeros(Nmolys)
+    weight_tot = np.zeros(Nmolys)
 
-    mzp = 30.0    #MMG Should this be a value passed in - mag_zero or zp for each image?
+    ####abl  mzp = 30.0    
 
     for i in range(Nmolys):
-        linee = aaa[i].strip(). split()
+        linee = aaa[i].strip().split()
         bbb = [1.0/np.float128(linee[j]) for j in range(2, len(linee))]
-        zzz[i] = 100**((config['mzpglobal']-np.float128(mzp))/2.5)*np.sum(bbb)
+        ###abl  zzz[i] = 100**((config['mzpglobal']-np.float128(mzp))/2.5)*np.sum(bbb)
+        weight_tot[i] = np.sum(bbb)
 
     jfn_weight = 'jweight_%s_%s' % (tileid, band)
-    np.savetxt(jfn_weight, zzz, fmt='%.18e')
+    np.savetxt(jfn_weight, weight_tot, fmt='%.18e')
     cmd = 'weight -z%s %s %s' % (jfn_weight, jfn_mask, fn_weightmask)
     mu.runcmd(cmd, manglebindir, log)
     copyfile(jfn_weight, fn_weight)
@@ -160,12 +185,12 @@ def weightmolys(config, Image_tab):
 
     #calculate magnitude limit from coadded weight
 
-    yyy = np.float128(mzp) - \
+    maglims = np.float128(config['mzpglobal']) - \
           2.5*np.log10(10*np.sqrt(np.pi)*(config['aper']/2/config['asperpix'])) - \
-          2.5*np.log10(1.0/np.sqrt(zzz))
+          2.5*np.log10(1.0/np.sqrt(weight_tot))
 
     jfn_maglims = 'jmaglims_%s_%s' % (tileid, band)
-    np.savetxt(jfn_maglims, yyy, fmt='%.18e')
+    np.savetxt(jfn_maglims, maglims, fmt='%.18e')
     copyfile(jfn_maglims, fn_maglims)
 
     print "wrote magnitude limits to %s" % fn_maglims
@@ -173,15 +198,17 @@ def weightmolys(config, Image_tab):
     jfn_jmaglimmask = 'jmaglimmask_%s_%s' % (tileid, band)
     cmd = 'weight -z%s %s %s' % (jfn_maglims, jfn_mask, jfn_jmaglimmask)
     mu.runcmd(cmd, manglebindir, log)
+    print "jfn_jmaglimmask = ", jfn_jmaglimmask
+    print "fn_maglimmask = ", fn_maglimmask
     copyfile(jfn_jmaglimmask, fn_maglimmask)
 
-    make_syste_masks('EXPTIME', Nmolys, fn_reduced, Image_tab, fnprefix)
-    make_syste_masks('AIRMASS', Nmolys, fn_reduced, Image_tab, fnprefix)
-    make_syste_masks('SKYBRITE', Nmolys, fn_reduced, Image_tab, fnprefix)
-    make_syste_masks('SKYSIGMA', Nmolys, fn_reduced, Image_tab, fnprefix)
-    make_syste_masks('FWHM', Nmolys, fn_reduced, Image_tab, fnprefix)
-    make_syste_masks('SKYVARA', Nmolys, fn_reduced, Image_tab, fnprefix)
-    make_syste_masks('SKYVARB', Nmolys, fn_reduced, Image_tab, fnprefix)
+    make_syste_masks('EXPTIME', config, Nmolys, fn_reduced, Image_tab, fnprefix)
+    make_syste_masks('AIRMASS', config, Nmolys, fn_reduced, Image_tab, fnprefix)
+    make_syste_masks('SKYBRITE', config, Nmolys, fn_reduced, Image_tab, fnprefix)
+    make_syste_masks('SKYSIGMA', config, Nmolys, fn_reduced, Image_tab, fnprefix)
+    make_syste_masks('FWHM', config, Nmolys, fn_reduced, Image_tab, fnprefix)
+    #make_syste_masks('SKYVARA', config, Nmolys, fn_reduced, Image_tab, fnprefix)
+    #make_syste_masks('SKYVARB', config, Nmolys, fn_reduced, Image_tab, fnprefix)
 
 
     #write total observation times
@@ -195,42 +222,9 @@ def weightmolys(config, Image_tab):
         os.remove(jfn_w)
 
 ### Do coadd weigthing
-    cmd = 'polyid -W %s %s %s' % (jfn_unbalk, jfn_mid, jfn_f)
-    mu.runcmd(cmd, manglebindir, log)
-    os.system('tail -n +2 %s >  %s' % (jfn_f, jfn_fs))
-
-    aaa = open(jfn_fs).readlines()
-    Nmolys = len(aaa)
-    print  'There are %d molys in this tile'%Nmolys
-    zzz = np.zeros(Nmolys)
-
-    mzp = 30.0   #MMG already defined above?
-
-    for i in range(Nmolys):
-        linee = aaa[i].strip(). split()
-        bbb = [1.0/np.float128(linee[j]) for j in range(2, len(linee))]
-        zzz[i] = 100**((config['mzpglobal']-np.float128(mzp))/2.5)*np.sum(bbb)
-
-    np.savetxt(jfn_weight, zzz, fmt='%.18e')
-    cmd = 'weight -z%s %s %s' % (jfn_weight, jfn_mask, fn_weightmask)
-    mu.runcmd(cmd, manglebindir, log)
-    copyfile(jfn_weight, fn_weight)
-
-    print  "wrote weights to %s" % fn_weight
-
-    #calculate magnitude limit from coadded weight
-    yyy = np.float128(mzp) - \
-          2.5*np.log10(10*np.sqrt(np.pi)*(config['aper']/2/config['asperpix'])) - \
-          2.5*np.log10(1.0/np.sqrt(zzz))
-
-    np.savetxt(jfn_maglims, yyy, fmt='%.18e')
-    copyfile(jfn_maglims, fn_maglims)
-
-    print "wrote magnitude limits to %s" % fn_maglims
-
-    cmd = 'weight -z%s %s %s' % (jfn_maglims, jfn_mask, jfn_jmaglimmask)
-    mu.runcmd(cmd, manglebindir, log)
-    copyfile(jfn_jmaglimmask, fn_maglimmask)
+###    cmd = 'polyid -W %s %s %s' % (jfn_unbalk, jfn_mid, jfn_f)
+###    mu.runcmd(cmd, manglebindir, log)
+###    os.system('tail -n +2 %s >  %s' % (jfn_f, jfn_fs))
 
     # clean up temp files
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':

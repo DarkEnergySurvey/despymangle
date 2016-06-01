@@ -12,6 +12,8 @@ import despymangle.mangle_db as mdb
 
 ######################################################################
 def starmask(config, Image_tab, dbi):
+    ### ABL : note, in this version the bleed mask and star mask are not balkanized. This saves a lot of time!
+
 
     # pulling some values from config as not to have to put config throughout code
     band = config['band']
@@ -117,7 +119,7 @@ def starmask(config, Image_tab, dbi):
 
         for j in range(N_s):
             idx = np.where((satstar_tab['RNUM'] == j+1)*  (satstar_tab['FILENAME'] == ufilenames[i]))[0][0]
-            print >>fily, satstar_tab['RA'][idx], satstar_tab['DEC'][idx], satstar_tab['RADIUS'][idx]/60./60.
+            print >>fily, satstar_tab['RA'][idx], satstar_tab['DEC'][idx], satstar_tab['RADIUS'][idx]/60./60. * config['starscale']
             ###        fily.close()
 
     fily.close()

@@ -205,7 +205,7 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
                                                      raA_e, decA_e, raA_f, decA_f,
                                                      raA_g, decA_g, raA_h, decA_h,
                                                      '%s0' % Image_tab['MANGLE_IMG_ID'][i],
-                                                     hdr['SKYVARA'],
+                                                     hdr['SKYVARA']*100**((mzpglobal-Image_tab['MAG_ZERO'][i])/2.5),
                                                      jfn_edges0)
                 if os.path.exists(jfn_edges0):
                     st_list.append(jfn_edges0)
@@ -217,7 +217,7 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
                                                  raB_e, decB_e, raB_f, decB_f,
                                                  raB_g, decB_g, raB_h, decB_h,
                                                  '%s1' % Image_tab['MANGLE_IMG_ID'][i],
-                                                 hdr['SKYVARB'],
+                                                 hdr['SKYVARB']*100**((mzpglobal-Image_tab['MAG_ZERO'][i])/2.5),
                                                  jfn_edges1)
             if os.path.exists(jfn_edges1):
                 st_list.append(jfn_edges1)
@@ -235,7 +235,7 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
                                                      raA_e, decA_e, raA_f, decA_f,
                                                      raA_g, decA_g, raA_h, decA_h,
                                                      imageid,
-                                                     hdr['SKYVARA'],
+                                                     hdr['SKYVARA']*100**((mzpglobal-Image_tab['MAG_ZERO'][i])/2.5),
                                                      jfn_edges0_t)
 
             # Do ampB
@@ -245,7 +245,7 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
                                                  raB_e, decB_e, raB_f, decB_f,
                                                  raB_g, decB_g, raB_h, decB_h,
                                                  '%s1' % Image_tab['MANGLE_IMG_ID'][i],
-                                                 hdr['SKYVARB'],
+                                                 hdr['SKYVARB']*100**((mzpglobal-Image_tab['MAG_ZERO'][i])/2.5),
                                                  jfn_edges1_t)
 
 
