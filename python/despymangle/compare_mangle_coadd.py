@@ -16,7 +16,7 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
     star=pym.Mangle(fn_star)
     bleed=pym.Mangle(fn_bleed)
 
-    data2,h2 = fitsio.read(coadd_fullname, ext=2, header=True)
+    data2,h2 = fitsio.read(coadd_fullname, ext='WGT', header=True)
     w2 = wcsutil.WCS(h2)
 
     A = np.array([limitx, limity])
