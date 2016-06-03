@@ -6,6 +6,7 @@ import fitsio
 import sys
 
 import despydb.desdbi as desdbi
+from despymisc import miscutils 
 from despyastro import wcsutil
 
 import despymangle.mangle_utils as mu
@@ -223,8 +224,12 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
                 st_list.append(jfn_edges1)
 
         else: ### Streaks !!!
-            print  "streak !!!!!!"
-            print h
+            if miscutils.fwdebug_check(3, "MAKECCDGONS_DEBUG"):
+                miscutils.fwdebug_print("%s streaks for image %s (pos: %s)" % (len(h), Image_tab['FILENAME'][i], h))
+            if miscutils.fwdebug_check(9, "MAKECCDGONS_DEBUG"):
+                for nb_st in range(len(h)):
+                    miscutils.fwdebug_print("streaks %s h[nb_st] = %s, tab=%s)" % (nb_st, h[nb_st], streak_tab[h[nb_st]]))
+
             # Do ampA
             jfn_edges0_t = 'jedges_%s_%s_%d_%d0' % (tileid, band, i, i)
             imageid = '%s0' % Image_tab['MANGLE_IMG_ID'][i]
@@ -249,7 +254,7 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
                                                  jfn_edges1_t)
 
 
-            #### Definging the streaks
+            #### Defining the streaks
             stl = []
             for nb_st in range(len(h)):
                 jfn_edges_st = 'jedges_st_%s_%s_%s_%d' % (tileid, band, i, nb_st)
