@@ -36,8 +36,8 @@ def ccdmolys(config):
     cmd = 'poly2poly -vn%s -k5e-14,6 %s %s' % (numscheme, jfn_u, jfn_mask)
     mu.runcmd(cmd, manglebindir, log)
 
-    os.rename(jfn_mask, config['fn_mask'])
+    copyfile(jfn_mask, config['fn_mask'])
 
     if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
-        for tempf in [jfn_b, jfn_u, jfn_unbalk]:
+        for tempf in [jfn_b, jfn_u, jfn_unbalk, jfn_mask]:
             os.remove(tempf)
