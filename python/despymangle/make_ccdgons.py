@@ -4,6 +4,7 @@ import os
 import re
 import fitsio
 import sys
+from shutil import copyfile
 
 import despydb.desdbi as desdbi
 from despymisc import miscutils 
@@ -91,8 +92,14 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
         print '########## working on image %s'%Image_tab['FILENAME'][i]
 
         if 'FULLNAME' in nwgint_tab: 
-            fits_file = nwgint_tab['FULLNAME'][i]
+            h = np.where(np.logical_and((nwgint_tab['CCDNUM'] == Image_tab['CCDNUM'][i]), (nwgint_tab['EXPNUM'] == Image_tab['EXPNUM'][i])))
+            if h == False:
+                raise Exception("WHYYYYYYY")
+            print ":(    h = ", h
+
+            fits_file = nwgint_tab['FULLNAME'][h[0][0]]
             hdr = fitsio.read_header(fits_file)
+            print "Michelle: ", nwgint_tab['FULLNAME'][h[0][0]], nwgint_tab['CCDNUM'][h[0][0]]
         else:
             hdr = create_head_from_db_info(nwgint_tab, i)
 
@@ -102,11 +109,22 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
         b1 = int(config['border1'])
         b2 = int(config['border2'])
 
+        if CCDNUM > 31:
+            dataseca='[1:1024,1:4096]'     # Data section from amp A
+            datasecb='[1025:2048,1:4096]'  # Data section from amp B
+        else:
+            dataseca='[1025:2048,1:4096]' # Data section from amp A
+            datasecb='[1:1024,1:4096]'     # Data section from amp B
+
+
         ### GET corners and middles RA, DEC.
+        print "CCDNUM = ", CCDNUM, type(CCDNUM)
+        print "dataseca = ", dataseca
+        print "datasecb = ", datasecb
 
         ##1) Do. Amp A
         if CCDNUM != 31:
-            (x0,x1,y0,y1) = split_datasec(config['dataseca'])
+            (x0,x1,y0,y1) = split_datasec(dataseca)
 
             if x0 == 1:
                 xa = x0+b1
@@ -150,7 +168,7 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
 
 
         ##2) Do. Amp B
-        (x0,x1,y0,y1) = split_datasec(config['datasecb'])
+        (x0,x1,y0,y1) = split_datasec(datasecb)
 
         if x0 == 1:
             xa = x0+b1
@@ -334,14 +352,10 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
     cmd = 'rasterize -T %s %s %s %s' % (mtol, tilefile, jfn_s, jfn_r)
     mu.runcmd(cmd, manglebindir, log)
     
-    try:
-        os.rename(jfn_r, config['fn_unbalk'])
-    except OSError:
-        print "rename %s -> %s" % (jfn_r, config['fn_unbalk'])
-        raise
+    copyfile(jfn_r, config['fn_unbalk'])
 
     if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
-        for tempf in [jfn_ss2, jfn_p, jfn_s]:
+        for tempf in [jfn_ss2, jfn_p, jfn_s, jfn_r]:
             os.remove(tempf)
         for tempf in st_list:
             os.remove(tempf)
