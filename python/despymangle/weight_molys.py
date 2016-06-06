@@ -129,11 +129,12 @@ def weightmolys(config, Image_tab):
     jfn_count = 'jcount_%s_%s' % (tileid, band)
     os.system("awk '{print NF}' %s  > %s" % (jfn_reduced, jfn_count))
 
-    os.rename(jfn_reduced, fn_reduced)
-    os.rename(jfn_count, fn_count)
+    copyfile(jfn_reduced, fn_reduced)
+    copyfile(jfn_count, fn_count)
 
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
-        os.remove(jfn_f)
+        for f in [jfn_reduced, jfn_count, jfn_f]:
+            os.remove(f)
 
     #write areas
     jfn_a = 'ja_%s_%s' % (tileid, band)
@@ -142,9 +143,10 @@ def weightmolys(config, Image_tab):
 
     jfn_area = 'jarea_%s_%s' % (tileid, band)
     os.system("awk 'NR>2{print $1}' %s > %s " % (jfn_a, jfn_area))
-    os.rename(jfn_area, fn_area)
+    copyfile(jfn_area, fn_area)
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
-        os.remove(jfn_a)
+        for junkf in [jfn_area, jfn_a]:
+            os.remove(junkf)
 
     jfn_w = 'jw_%s_%s' % (tileid, band)
 
@@ -216,10 +218,13 @@ def weightmolys(config, Image_tab):
     cmd = 'poly2poly -ow %s %s'%(jfn_mask, jfn_w)
     mu.runcmd(cmd, manglebindir, log)
 
-    os.system("awk 'NR>2{print $1}' %s > %s" % (jfn_w, 'jtime'))
-    os.rename('jtime', fn_time)
+    jfn_time = 'jtime_%s_%s' % (tileid, band) 
+    os.system("awk 'NR>2{print $1}' %s > %s" % (jfn_w, jfn_time))
+    copyfile(jfn_time, fn_time)
+
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
-        os.remove(jfn_w)
+        for junkf in [jfn_time, jfn_w]:
+            os.remove(junkf)
 
 ### Do coadd weigthing
 ###    cmd = 'polyid -W %s %s %s' % (jfn_unbalk, jfn_mid, jfn_f)
