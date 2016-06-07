@@ -25,6 +25,7 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
     fig = pylab.figure(figsize=(30, 5))
 
     pylab.subplot(141)
+    pylab.axis([np.min(limitx), np.max(limitx), np.min(limity), np.max(limity)])
     pylab.pcolormesh(A[0], A[1], data2[M].T, 
                vmin=np.min(data2[M]), 
                vmax=np.max(data2[M]))
@@ -43,6 +44,7 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
     D = val.reshape((len(A[1]), len(A[0])), order='F')
 
     pylab.subplot(142)
+    pylab.axis([np.min(limitx), np.max(limitx), np.min(limity), np.max(limity)])
     pylab.pcolormesh(A[0], A[1], D, 
                vmin=np.min(data2[M]), 
                vmax=np.max(data2[M]))
@@ -51,6 +53,7 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
 
 
     pylab.subplot(143)
+    pylab.axis([np.min(limitx), np.max(limitx), np.min(limity), np.max(limity)])
     pylab.pcolormesh(A[0], A[1], (data2[M].T-D), 
                vmin=-np.max(data2[M])/5., 
                vmax=np.max(data2[M])/5.)
@@ -63,6 +66,7 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
     rap = np.ma.masked_values(rap, -1)
 
     pylab.subplot(144)
+    pylab.axis([np.min(limitx), np.max(limitx), np.min(limity), np.max(limity)])
     pylab.pcolormesh(A[0], A[1], rap, vmin=0.95, vmax=1.05)
     pylab.colorbar()
     pylab.title('Ratio (Coadd / Mangle)')
