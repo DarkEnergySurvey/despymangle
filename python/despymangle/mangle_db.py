@@ -248,15 +248,47 @@ def get_tileid(tilename, db_section=None, des_services=None):
     dbh = despydb.desdbi.DesDbi(des_services, db_section)
 
     # Prepare the query
-    query="""select id from coaddtile_geom where tilename='%s'""" % tilename
+    query = """select id from coaddtile_geom where tilename='%s'""" % tilename
 
     # Get the cursor
-    cur=dbh.cursor()
+    cur = dbh.cursor()
     cur.execute(query)
 
     item = cur.fetchone()
     return item[0]
 
+
+###################################################################
+def get_coadd_object_info(dbi, tilename, pfw_attempt_id, dbschema='', 
+                          ra_column=None, dec_column=None):
+    """ Get id and location information for coadd objects """
+
+    # Note: will pass in None if not set in config, 
+    # so have to check & set here instead of using default values
+    if ra_column is None:
+        ra_column='alphawin_j2000'
+
+    if dec_column is None:
+        dec_column='deltawin_j2000'
+    
+    sql = """select co.id, co.filename, co.object_number, 
+                    co.{racol} as ra, co.{deccol} as dec 
+             from {schema}coadd_object co, {schema}catalog c 
+             where co.filename=c.filename and 
+                   c.filetype='coadd_det_cat' and 
+                   c.tilename='{tname}' and 
+                   c.pfw_attempt_id={attid}
+          """.format(racol=ra_column, 
+                     deccol=dec_column, 
+                     schema=dbschema, 
+                     tname=tilename, 
+                     attid=pfw_attempt_id)
+
+    if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
+        miscutils.fwdebug_print("sql = %s" % sql)
+
+    coadd_object_tab = despyastro.query2rec(sql, dbhandle=dbi)
+    return coadd_object_tab
 
 
 ###################################################################

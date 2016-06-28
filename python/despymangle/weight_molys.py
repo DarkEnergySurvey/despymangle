@@ -200,8 +200,6 @@ def weightmolys(config, Image_tab):
     jfn_jmaglimmask = 'jmaglimmask_%s_%s' % (tileid, band)
     cmd = 'weight -z%s %s %s' % (jfn_maglims, jfn_mask, jfn_jmaglimmask)
     mu.runcmd(cmd, manglebindir, log)
-    print "jfn_jmaglimmask = ", jfn_jmaglimmask
-    print "fn_maglimmask = ", fn_maglimmask
     copyfile(jfn_jmaglimmask, fn_maglimmask)
 
     make_syste_masks('EXPTIME', config, Nmolys, fn_reduced, Image_tab, fnprefix)

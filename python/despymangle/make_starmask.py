@@ -99,7 +99,6 @@ def starmask(config, Image_tab, dbi):
     satstar_tab = mdb.get_satstar_info(dbi, config['schema'], Image_tab['FILENAME'])
 
     print 'je suis la'
-    print satstar_tab
 
     #N_stars = satstar_tab.shape[0]
 

@@ -29,16 +29,20 @@ def split_datasec(dsec):
 
     return (x0, x1, y0, y1)
 
+
 ######################################################################
 def create_header_from_db_info(nwgint_tab, i):
     """ From nwgint info gathered from image table, create a header """
-    header = fitsio.FITSHDR()
 
-    for k, v in image_dict.items():
-        new_record = {'name': k,'value':v[0]}
-        header.add_record(new_record)
+    raise Exception('Not implemented yet')
 
-    return header
+    # example code from Felipe
+    #header = fitsio.FITSHDR()
+    #for k, v in image_dict.items():
+    #    new_record = {'name': k,'value':v[0]}
+    #    header.add_record(new_record)
+    #
+    #return header
 
 
 
@@ -62,24 +66,6 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
     ### The existance of those files have been checked previously
     tilefile = config['poltiles']
 
-    #### compute weight a la y1a1
-
-    #MMG Where is weight or weight2 even being used?
-    #MMG zp = Image_tab['MAG_ZERO']
-    #MMG zp = 29
-
-    #MMG skysigma = Image_tab['SKYSIGMA']
-
-    #psfscale = np.array([np.float128(st) for st in sub_ccdtab[:, 32]])
-    #psfscale[np.where(psfscale  == 0.0)] = 1.0
-
-    #MMG weight = 100 ** ((zp-mzpglobal) /2.5)  / skysigma**2 # * psfscale
-
-    #MMG weight2 = np.zeros((2, len(weight)))
-    #MMG weight2[0, :] = 100 ** ((zp-mzpglobal) /2.5) # *psfscale
-    #MMG weight2[1, :] = 100 ** ((zp-mzpglobal) /2.5) # *psfscale
-
-
     #######  Get data for streaks.
     if dbi is None:
         dbi = desdbi.DesDbi(config['des_services'], config['db_section'])
@@ -94,14 +80,13 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
         if 'FULLNAME' in nwgint_tab: 
             h = np.where(np.logical_and((nwgint_tab['CCDNUM'] == Image_tab['CCDNUM'][i]), (nwgint_tab['EXPNUM'] == Image_tab['EXPNUM'][i])))
             if h == False:
-                raise Exception("WHYYYYYYY")
-            print ":(    h = ", h
+                raise KeyError("Could not find matching nwgint for image %s" % Image_tab['FILENAME'][i])
 
             fits_file = nwgint_tab['FULLNAME'][h[0][0]]
             hdr = fitsio.read_header(fits_file)
-            print "Michelle: ", nwgint_tab['FULLNAME'][h[0][0]], nwgint_tab['CCDNUM'][h[0][0]]
         else:
-            hdr = create_head_from_db_info(nwgint_tab, i)
+            raise KeyError('Missing FULLNAME in nwgint_tab')
+            #hdr = create_head_from_db_info(nwgint_tab, i)
 
         ### GET CCDNUM.
         CCDNUM = hdr['CCDNUM']
@@ -118,9 +103,6 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
 
 
         ### GET corners and middles RA, DEC.
-        print "CCDNUM = ", CCDNUM, type(CCDNUM)
-        print "dataseca = ", dataseca
-        print "datasecb = ", datasecb
 
         ##1) Do. Amp A
         if CCDNUM != 31:

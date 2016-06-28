@@ -19,6 +19,7 @@ import despymangle.weight_molys as wm
 import despymangle.make_starmask as sm
 import despymangle.mangle_db as mdb
 import despymangle.compare_mangle_coadd as nc
+import despymangle.make_db_import_files as dbif
 
 ###################################################################
 def parse_args(argv):
@@ -52,10 +53,10 @@ def parse_args(argv):
     parser.add_argument('--trailmaskval', action='store', required=False)
     parser.add_argument('--edgemaskval', action='store', required=False)
     parser.add_argument('--starscale', action='store', required=False)
-    parser.add_argument('--dataseca', action='store', required=False)
-    parser.add_argument('--datasecb', action='store', required=False)
     parser.add_argument('--border1', action='store', required=False)
     parser.add_argument('--border2', action='store', required=False)
+    parser.add_argument('--ra_column', action='store', required=False)
+    parser.add_argument('--dec_column', action='store', required=False)
 
     parser.add_argument('--list_redimg', action='store', required=True)
     parser.add_argument('--list_nwgint', action='store', required=True)
@@ -67,6 +68,7 @@ def parse_args(argv):
 
     parser.add_argument('--molysprefix', action='store')
     parser.add_argument('--polprefix', action='store')
+    parser.add_argument('--dbcsv', action='store', help='prefix for db csv files, _<tablename>.csv appended')
 
     parser.add_argument('--runn', action='store', help='Unique string for processing attempt')
     parser.add_argument('--outputdir', action='store', required=False)
@@ -141,11 +143,11 @@ def mangle_setup(args):
     config['bandnum'] = config['band_dic'][config['band']]
 
     # convert str to int
-    for k in ['res', 'mzpglobal']:
+    for k in ['res']:
         config[k] = int(config[k])
 
     # convert str to float
-    for k in ['aper', 'asperpix', 'starscale']:
+    for k in ['aper', 'asperpix', 'starscale', 'mzpglobal']:
         config[k] = float(config[k])
 
     # create commonly used config values that are composites
@@ -331,37 +333,42 @@ def run_mangle_workflow(config):
 
     # Add optional skyvar plotting?
 
-    print '########## Launching make_ccdgons'
+    print '\n########## Launching make_ccdgons'
     mc.ccdgons(config, Image_tab, nwgint_tab, dbi)
 
-    print '########## Launching make_ccdmolys'
+    print '\n########## Launching make_ccdmolys'
     mm.ccdmolys(config)
     print 'Done'
 
-    print '########## Launching weightmolys'
+    print '\n########## Launching weightmolys'
     wm.weightmolys(config, Image_tab)
     print 'Done'
 
-    print '########## Launching make_starmask'
+    print '\n########## Launching make_starmask'
     sm.starmask(config, Image_tab, dbi)
     print 'Done'
 
     if config['fn_compare_plot1'] is not None:
-        print '########## Creating comparison plot 1'
+        print '\n########## Creating comparison plot 1'
         nc.make_comp(config['coadd'], config['fn_molys_weight'], 
                      config['fn_mask_star'], config['fn_mask_bleed'],
                      config['fn_compare_plot1'], 
                      limitx=np.arange(000, 10000, 10), limity=np.arange(00, 10000,10))
         print 'Done'
 
-    if config['fn_compare_plot2'] is not  None:
-        print '########## Creating comparison plot 2'
+    if config['fn_compare_plot2'] is not None:
+        print '\n########## Creating comparison plot 2'
         r1=np.random.randint(0, 10000-200)
         r2=np.random.randint(0, 10000-200)
         nc.make_comp(config['coadd'], config['fn_molys_weight'], 
                      config['fn_mask_star'], config['fn_mask_bleed'],
                      config['fn_compare_plot2'], 
                      limitx=np.arange(r1, r1+200, 1), limity=np.arange(r2, r2+200,1))
+        print 'Done'
+
+    if config['dbcsv'] is not None:
+        print '\n########## Creating csv files for database ingestion'
+        dbif.make_csv_files(config, dbi)
         print 'Done'
 
     print 'Finished mangle'
@@ -372,7 +379,6 @@ def main(argv):
     """ Entry point """
     args = parse_args(argv)
     config = mangle_setup(args)
-    print config
     run_mangle_workflow(config)
 
 
