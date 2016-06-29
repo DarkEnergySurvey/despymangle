@@ -348,7 +348,7 @@ def run_mangle_workflow(config):
     sm.starmask(config, Image_tab, dbi)
     print 'Done'
 
-    if config['fn_compare_plot1'] is not None:
+    if config['fn_compare_plot1'] is  None:
         print '\n########## Creating comparison plot 1'
         nc.make_comp(config['coadd'], config['fn_molys_weight'], 
                      config['fn_mask_star'], config['fn_mask_bleed'],
@@ -356,7 +356,7 @@ def run_mangle_workflow(config):
                      limitx=np.arange(000, 10000, 10), limity=np.arange(00, 10000,10))
         print 'Done'
 
-    if config['fn_compare_plot2'] is not None:
+    if config['fn_compare_plot2'] is  None:
         print '\n########## Creating comparison plot 2'
         r1=np.random.randint(0, 10000-200)
         r2=np.random.randint(0, 10000-200)
@@ -368,7 +368,7 @@ def run_mangle_workflow(config):
 
     if config['dbcsv'] is not None:
         print '\n########## Creating csv files for database ingestion'
-        dbif.make_csv_files(config, dbi)
+        dbif.make_csv_files(config,Image_tab, dbi)
         print 'Done'
 
     print 'Finished mangle'

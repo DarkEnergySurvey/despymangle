@@ -127,7 +127,7 @@ def weightmolys(config, Image_tab):
 
     #### get the nuumber of CCDgons per ccdmolygon
     jfn_count = 'jcount_%s_%s' % (tileid, band)
-    os.system("awk '{print NF}' %s  > %s" % (jfn_reduced, jfn_count))
+    os.system("awk '{print NF -2}' %s  > %s" % (jfn_reduced, jfn_count))
 
     copyfile(jfn_reduced, fn_reduced)
     copyfile(jfn_count, fn_count)
