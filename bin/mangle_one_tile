@@ -79,7 +79,7 @@ def parse_args(argv):
     parser.add_argument('--mask', action='store', dest='fn_mask', help='Output file')
     parser.add_argument('--mask_star', action='store', dest='fn_mask_star', help='Output file')
     parser.add_argument('--mask_bleed', action='store', dest='fn_mask_bleed', help='Output file')
-    parser.add_argument('--unbalk', action='store', dest='fn_unbalk', help='Output file')
+    parser.add_argument('--ccdgon', action='store', dest='fn_ccdgon', help='Output file')
     parser.add_argument('--molyswgt', action='store', dest='fn_molys_weight', help='Output file')
     parser.add_argument('--maglims', action='store', dest='fn_maglims', help='Output file')
     parser.add_argument('--compare_plot1', action='store', dest='fn_compare_plot1', required=False)
@@ -172,8 +172,8 @@ def mangle_setup(args):
     miscutils.coremakedirs(mdir)
 
     # create default filenames if not provided on command line
-    if config['fn_unbalk'] is None: # for ccdmolys
-        config['fn_unbalk'] = outdir + config['polprefix'] + '_ccdgons_weight.pol'
+    if config['fn_ccdgon'] is None: # for ccdmolys
+        config['fn_ccdgon'] = outdir + config['polprefix'] + '_ccdgons_weight.pol'
     if config['fn_mask'] is None:  # for ccdmolys
         config['fn_mask'] = outdir + config['polprefix']  + '_ccdmolys_weight.pol'
     if config['fn_mask_star'] is None:
@@ -329,23 +329,23 @@ def run_mangle_workflow(config):
     # set up gtt with red filenames for future queries
     #mdb.load_gtt_red_from_nwgint(dbi, nwgint_tab['FILENAME'])
     # query the DB to get information about the images
-    #Image_tab = mdb.get_redimg_info(dbi)
+    Image_tab = mdb.get_redimg_info(dbi)
 
     # Add optional skyvar plotting?
 
     print '\n########## Launching make_ccdgons'
-    #mc.ccdgons(config, Image_tab, nwgint_tab, dbi)
+    mc.ccdgons(config, Image_tab, nwgint_tab, dbi)
 
     print '\n########## Launching make_ccdmolys'
-    #mm.ccdmolys(config)
+    mm.ccdmolys(config)
     print 'Done'
 
     print '\n########## Launching weightmolys'
-    #wm.weightmolys(config, Image_tab)
+    wm.weightmolys(config, Image_tab)
     print 'Done'
 
     print '\n########## Launching make_starmask'
-    #sm.starmask(config, Image_tab, dbi)
+    sm.starmask(config, Image_tab, dbi)
     print 'Done'
 
     if config['fn_compare_plot1'] is   None:

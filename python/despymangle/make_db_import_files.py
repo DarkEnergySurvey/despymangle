@@ -168,7 +168,7 @@ def make_csv_files(config,Image_tab,  dbi):
     print N_images
 
 
-    os.system('poly2poly -oi %s toto'%config['fn_unbalk'] )
+    os.system('poly2poly -oi %s toto'%config['fn_ccdgon'] )
     ids=nm.loadtxt('toto', skiprows=2, dtype=nm.int64)
 
 
@@ -190,7 +190,7 @@ def make_csv_files(config,Image_tab,  dbi):
     indA=nm.where(id2indices(Image_tab, ids)[1] ==0)
     indB=nm.where(id2indices(Image_tab, ids)[1] ==1)
 
-    os.system('poly2poly -ow %s titi'%config['fn_unbalk'] )
+    os.system('poly2poly -ow %s titi'%config['fn_ccdgon'] )
     weights=nm.loadtxt('titi', skiprows=2)[:,0]
 
     os.system('rm titi')

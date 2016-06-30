@@ -115,11 +115,11 @@ def weightmolys(config, Image_tab):
     mu.runcmd(cmd, manglebindir, log)
 
     #use polyid to get id numbers of input reduced images
-    jfn_unbalk = 'junbalk_%s_%s' % (tileid, band)
-    copyfile(config['fn_unbalk'], jfn_unbalk)
+    jfn_ccdgon = 'jccdgon%s_%s' % (tileid, band)
+    copyfile(config['fn_ccdgon'], jfn_ccdgon)
 
     jfn_f = 'jf_%s_%s' % (tileid, band)
-    cmd = 'polyid %s %s %s' % (jfn_unbalk, jfn_mid, jfn_f)
+    cmd = 'polyid %s %s %s' % (jfn_ccdgon, jfn_mid, jfn_f)
     mu.runcmd(cmd, manglebindir, log)
 
     jfn_reduced = 'jreduced_%s_%s' % (tileid, band)
@@ -158,7 +158,7 @@ def weightmolys(config, Image_tab):
 
     ### get for each center of molygons the lists of SE weights
     jfn_f = 'jSE_w_%s_%s' % (tileid, band)
-    cmd = 'polyid -W %s %s %s' % (jfn_unbalk, jfn_mid, jfn_f)
+    cmd = 'polyid -W %s %s %s' % (jfn_ccdgon, jfn_mid, jfn_f)
     mu.runcmd(cmd, manglebindir, log)
 
     jfn_fs = 'jfs_%s_%s' % (tileid, band)
@@ -225,13 +225,13 @@ def weightmolys(config, Image_tab):
             os.remove(junkf)
 
 ### Do coadd weigthing
-###    cmd = 'polyid -W %s %s %s' % (jfn_unbalk, jfn_mid, jfn_f)
+###    cmd = 'polyid -W %s %s %s' % (jfn_ccdgon, jfn_mid, jfn_f)
 ###    mu.runcmd(cmd, manglebindir, log)
 ###    os.system('tail -n +2 %s >  %s' % (jfn_f, jfn_fs))
 
     # clean up temp files
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
-        for tempf in [jfn_unbalk, jfn_jmaglimmask, jfn_weight,
+        for tempf in [jfn_ccdgon, jfn_jmaglimmask, jfn_weight,
                       jfn_mask, jfn_maglims,
                       jfn_f, jfn_fs, jfn_mid]:
             os.remove(tempf)

@@ -334,7 +334,7 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
     cmd = 'rasterize -T %s %s %s %s' % (mtol, tilefile, jfn_s, jfn_r)
     mu.runcmd(cmd, manglebindir, log)
     
-    copyfile(jfn_r, config['fn_unbalk'])
+    copyfile(jfn_r, config['fn_ccdgon'])
 
     if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
         for tempf in [jfn_ss2, jfn_p, jfn_s, jfn_r]:

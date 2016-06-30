@@ -19,11 +19,11 @@ def ccdmolys(config):
 
     manglebindir = config['manglebindir']
 
-    jfn_unbalk = 'junbalk_%s_%s' % (tileid, band)
-    copyfile(config['fn_unbalk'], jfn_unbalk)
+    jfn_ccdgon = 'jccdgon%s_%s' % (tileid, band)
+    copyfile(config['fn_ccdgon'], jfn_ccdgon)
 
     jfn_b = 'jb_%s_%s' % (tileid, band)
-    cmd = 'balkanize -Ba %s %s %s' % (mtol, jfn_unbalk, jfn_b)
+    cmd = 'balkanize -Ba %s %s %s' % (mtol, jfn_ccdgon, jfn_b)
     mu.runcmd(cmd, manglebindir, log)
 
     jfn_u = 'ju_%s_%s' % (tileid, band)
@@ -39,5 +39,5 @@ def ccdmolys(config):
     copyfile(jfn_mask, config['fn_mask'])
 
     if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
-        for tempf in [jfn_b, jfn_u, jfn_unbalk, jfn_mask]:
+        for tempf in [jfn_b, jfn_u, jfn_ccdgon, jfn_mask]:
             os.remove(tempf)
