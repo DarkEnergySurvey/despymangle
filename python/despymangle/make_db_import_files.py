@@ -31,6 +31,10 @@ def id2indices(Image_tab, ids):
 def make_csv_files(config,Image_tab,  dbi):
 
     print config
+    if config['outputdir'] is not None:
+        outdir = config['outputdir'] + '/'
+    fnprefix = outdir + config['molysprefix']
+    print '!!!!! ',   config['molysprefix'], outdir
 
 
 
@@ -71,44 +75,82 @@ def make_csv_files(config,Image_tab,  dbi):
     ra=coadd_object_tab['RA']
     dec=coadd_object_tab['DEC']
 
+    toly_mask=pym.Mangle(config['poltolys'])
     mangle_mask=pym.Mangle(config['fn_maglims'])
     star_mask=pym.Mangle(config['fn_mask_star'])
     bleed_mask=pym.Mangle(config['fn_mask_bleed'])
 
+    N_obj=len(ra)
+    print N_obj
 
-    A=mangle_mask.polyid(ra,dec)
+
+
+
+    ##### Check whether object are in the tolys:  since this si in a routine that will be call 5 times, it will be re-checked 5 times whereas once suffice ...
+
+    tol=toly_mask.polyid(ra,dec)
+    print 'there are ', len(tol[tol<0]) ,' objects in the tiles which are lost by Mangle'
+
+
+    import matplotlib.pyplot as plt
+    plt.figure(1)
+    plt.plot(ra[tol<0], dec[tol<0], 'k.')
+    plt.savefig('Object_not_in_tolygon_%s.png'%config['molysprefix'])
+
+
+    ### Check whether object are  in the geometry mask. 
+    A=mangle_mask.polyid_and_weight(ra,dec)   ## A[0] give the id of the polygon (-1 if no polygon), and A[1] give the associated mag_lim
+    print A
+    print A[1][A[0]<10]
+
+    plt.figure(2)
+    plt.plot(ra[A[0]<0], dec[A[0]<0], 'k.')
+    plt.savefig('Objects_not_in_geometry_mask_%s.png'%config['molysprefix'])
+
+
+
+    ######### Check whether object are in the star_mask
+
+    star=star_mask.polyid(ra,dec)
+
+    plt.figure(3)
+    plt.plot(ra[star>=0], dec[star>=0], 'k.')
+    plt.savefig('Objects_in_star_mask_%s.png'%config['molysprefix'])
+
+
+    ######### Check whether object are in the bleed_mask
+
+    bleed=bleed_mask.polyid(ra,dec)
+
+    plt.figure(4)
+    plt.plot(ra[bleed>0], dec[bleed>0], 'k.')
+    plt.savefig('Objects_in_bleed_mask_%s.png'%config['molysprefix'])
+
+
+
+    #### BIT values
+    ISNOT_INGEOMETRY=1
+    IS_INSTAR=2
+    IS_INBLEED=4
+    ISNOT_INTOLY=8
+
+
+
     
 
-    print A
-    print A[A<10]
 
 
+    basicline='%d,%d,%d'
 
 
+    g=open(fndb_coadd_object_molygon, 'w')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    for i in range(0,N_obj):
+        MOLYGON_ID_X=A[0][i]
+        MANGLE_FLAG_X= ISNOT_INGEOMETRY * (A[0][i]<0) + IS_INSTAR *(star[i]>=0) + IS_INBLEED *(  bleed[i]>=0  ) + ISNOT_INTOLY *(tol[i]<0   )
+     
+        print >>g, basicline%(coadd_object_tab['ID'][i], MOLYGON_ID_X,MANGLE_FLAG_X)
+    g.close()
 
 
 
@@ -176,12 +218,10 @@ def make_csv_files(config,Image_tab,  dbi):
     ##########################
     
 
-    if config['outputdir'] is not None:
-        outdir = config['outputdir'] + '/'
-    fnprefix = outdir + config['molysprefix']
-    print '!!!!! ',   config['molysprefix']
+ 
+   
+    os.system('poly2poly -oi  %s_weight.pol   toto'%fnprefix )
 
-    os.system('poly2poly -oi /des001/home/benoitl/y3a1_run/mangle_tests/prodbeta/DES0459-5622/mangle/g/DES0459-5622_r13p68_g_molys_weight.pol toto' )
     ids=nm.loadtxt('toto', skiprows=2, dtype=nm.int64)
     N_polys=len(ids)
     print N_polys
@@ -192,14 +232,18 @@ def make_csv_files(config,Image_tab,  dbi):
     ### TOLYGON_ID can probably be removed ??? ABL
     BAND=config['band']
     
-    NUM_IMAGES=nm.loadtxt('/des001/home/benoitl/y3a1_run/mangle_tests/prodbeta/DES0459-5622/mangle/g/DES0459-5622_r13p68_g_molys.count', dtype=nm.int32)
-    TOTAL_EXPTIME=nm.loadtxt('/des001/home/benoitl/y3a1_run/mangle_tests/prodbeta/DES0459-5622/mangle/g/DES0459-5622_r13p68_g_molys_EXPTIME.SUM')
-    AREA_STR=nm.loadtxt('/des001/home/benoitl/y3a1_run/mangle_tests/prodbeta/DES0459-5622/mangle/g/DES0459-5622_r13p68_g_molys.area')
-    WAVG_AIRMASS= nm.loadtxt('/des001/home/benoitl/y3a1_run/mangle_tests/prodbeta/DES0459-5622/mangle/g/DES0459-5622_r13p68_g_molys_AIRMASS.WMEAN')
-    WAVG_FWHM=nm.loadtxt('/des001/home/benoitl/y3a1_run/mangle_tests/prodbeta/DES0459-5622/mangle/g/DES0459-5622_r13p68_g_molys_FWHM.WMEAN')
-    MAG_LIMIT=nm.loadtxt('/des001/home/benoitl/y3a1_run/mangle_tests/prodbeta/DES0459-5622/mangle/g/DES0459-5622_r13p68_g_molys.maglims')
     
-    os.system('poly2poly -om /des001/home/benoitl/y3a1_run/mangle_tests/prodbeta/DES0459-5622/mangle/g/DES0459-5622_r13p68_g_molys_weight.pol toto' )
+    NUM_IMAGES=nm.loadtxt('%s/%s.count'%(os.getcwd(),fnprefix), dtype=nm.int32)  ##### ABL: not so sure about the os.getcwd , but loadtxt seem to need absolute paths 
+    TOTAL_EXPTIME=nm.loadtxt('%s/%s_EXPTIME.SUM'%(os.getcwd(),fnprefix))
+    AREA_STR=nm.loadtxt('%s/%s.area'%(os.getcwd(),fnprefix))
+    WAVG_AIRMASS= nm.loadtxt('%s/%s_AIRMASS.WMEAN'%(os.getcwd(),fnprefix))
+    WAVG_FWHM=nm.loadtxt('%s/%s_FWHM.WMEAN'%(os.getcwd(),fnprefix))
+    MAG_LIMIT=nm.loadtxt('%s/%s.maglims'%(os.getcwd(),fnprefix))
+    
+
+
+    os.system('poly2poly -om %s_weight.pol toto'%fnprefix )
+
     radec=nm.loadtxt('toto', skiprows=2, usecols=[0,1])
 
     RA_MID=radec[:,0]
@@ -228,7 +272,7 @@ def make_csv_files(config,Image_tab,  dbi):
     #### GET molygons ids
 
 
-    os.system('poly2poly -oi /des001/home/benoitl/y3a1_run/mangle_tests/prodbeta/DES0459-5622/mangle/g/DES0459-5622_r13p68_g_molys_weight.pol toto' )
+    os.system('poly2poly -oi %s_weight.pol toto'%fnprefix )
     ids=nm.loadtxt('toto', skiprows=2, dtype=nm.int64)
     N_polys=len(ids)
     print N_polys
@@ -237,7 +281,7 @@ def make_csv_files(config,Image_tab,  dbi):
     basicline='%d,%d'
     
     g=open(fndb_molygon_ccdgon, 'w')
-    redfile=open('/des001/home/benoitl/y3a1_run/mangle_tests/prodbeta/DES0459-5622/mangle/g/DES0459-5622_r13p68_g_molys.red')
+    redfile=open('%s/%s.red'%(os.getcwd(),fnprefix))
     #h=open(scripts_dir+'import_in_molygon_ccdgon_table_'+coadd_run+'_'+band+'.dat', 'w')
     for i in range(N_polys):
         aa=redfile.readline().strip().split()

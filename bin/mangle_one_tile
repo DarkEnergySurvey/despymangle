@@ -334,21 +334,21 @@ def run_mangle_workflow(config):
     # Add optional skyvar plotting?
 
     print '\n########## Launching make_ccdgons'
-    mc.ccdgons(config, Image_tab, nwgint_tab, dbi)
+    #mc.ccdgons(config, Image_tab, nwgint_tab, dbi)
 
     print '\n########## Launching make_ccdmolys'
-    mm.ccdmolys(config)
+    #mm.ccdmolys(config)
     print 'Done'
 
     print '\n########## Launching weightmolys'
-    wm.weightmolys(config, Image_tab)
+    #wm.weightmolys(config, Image_tab)
     print 'Done'
 
     print '\n########## Launching make_starmask'
-    sm.starmask(config, Image_tab, dbi)
+    #sm.starmask(config, Image_tab, dbi)
     print 'Done'
 
-    if config['fn_compare_plot1'] is  None:
+    if config['fn_compare_plot1'] is   None:
         print '\n########## Creating comparison plot 1'
         nc.make_comp(config['coadd'], config['fn_molys_weight'], 
                      config['fn_mask_star'], config['fn_mask_bleed'],
@@ -356,7 +356,7 @@ def run_mangle_workflow(config):
                      limitx=np.arange(000, 10000, 10), limity=np.arange(00, 10000,10))
         print 'Done'
 
-    if config['fn_compare_plot2'] is  None:
+    if config['fn_compare_plot2'] is   None:
         print '\n########## Creating comparison plot 2'
         r1=np.random.randint(0, 10000-200)
         r2=np.random.randint(0, 10000-200)
