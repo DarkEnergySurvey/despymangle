@@ -22,8 +22,8 @@ def starmask(config, Image_tab, dbi):
     snap = config['snap']
     mtol = config['mtol']
     pix = config['pix']
-    fn_mask_star = config['fn_mask_star']
-    fn_mask_bleed = config['fn_mask_bleed']
+    fn_mask_star = config['fn_mask_star_pol']
+    fn_mask_bleed = config['fn_mask_bleed_pol']
 
     manglebindir = None
     if 'manglebindir' in config:

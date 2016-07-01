@@ -20,7 +20,7 @@ def ccdmolys(config):
     manglebindir = config['manglebindir']
 
     jfn_ccdgon = 'jccdgon%s_%s' % (tileid, band)
-    copyfile(config['fn_ccdgon'], jfn_ccdgon)
+    copyfile(config['fn_ccdgon_pol'], jfn_ccdgon)
 
     jfn_b = 'jb_%s_%s' % (tileid, band)
     cmd = 'balkanize -Ba %s %s %s' % (mtol, jfn_ccdgon, jfn_b)
@@ -36,7 +36,7 @@ def ccdmolys(config):
     cmd = 'poly2poly -vn%s -k5e-14,6 %s %s' % (numscheme, jfn_u, jfn_mask)
     mu.runcmd(cmd, manglebindir, log)
 
-    copyfile(jfn_mask, config['fn_mask'])
+    copyfile(jfn_mask, config['fn_mask_pol'])
 
     if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
         for tempf in [jfn_b, jfn_u, jfn_ccdgon, jfn_mask]:

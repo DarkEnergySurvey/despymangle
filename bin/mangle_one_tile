@@ -60,7 +60,7 @@ def parse_args(argv):
 
     parser.add_argument('--list_redimg', action='store', required=True)
     parser.add_argument('--list_nwgint', action='store', required=True)
-    parser.add_argument('--coadd', action='store', required=True)
+    parser.add_argument('--coadd', action='store', dest='fn_coadd', required=True)
     parser.add_argument('--poltiles', action='store', help='Automatically set if wget_pols')
     parser.add_argument('--poltolys', action='store', help='Automatically set if wget_pols')
     parser.add_argument('--paramfile', action='store', required=False,
@@ -68,7 +68,8 @@ def parse_args(argv):
 
     parser.add_argument('--molysprefix', action='store')
     parser.add_argument('--polprefix', action='store')
-    parser.add_argument('--dbcsv', action='store', help='prefix for db csv files, _<tablename>.csv appended')
+    parser.add_argument('--dbprefix', action='store', help='prefix for db csv files, _<tablename>.csv appended')
+    parser.add_argument('--pltprefix', action='store', help='prefix for plots')
 
     parser.add_argument('--runn', action='store', help='Unique string for processing attempt')
     parser.add_argument('--outputdir', action='store', required=False)
@@ -76,14 +77,14 @@ def parse_args(argv):
     parser.add_argument('--cleanup', action='store', required=False,
                          help='Y/N  whether to delete temporary files')
 
-    parser.add_argument('--mask', action='store', dest='fn_mask', help='Output file')
-    parser.add_argument('--mask_star', action='store', dest='fn_mask_star', help='Output file')
-    parser.add_argument('--mask_bleed', action='store', dest='fn_mask_bleed', help='Output file')
-    parser.add_argument('--ccdgon', action='store', dest='fn_ccdgon', help='Output file')
-    parser.add_argument('--molyswgt', action='store', dest='fn_molys_weight', help='Output file')
-    parser.add_argument('--maglims', action='store', dest='fn_maglims', help='Output file')
-    parser.add_argument('--compare_plot1', action='store', dest='fn_compare_plot1', required=False)
-    parser.add_argument('--compare_plot2', action='store', dest='fn_compare_plot2', required=False)
+    parser.add_argument('--mask', action='store', dest='fn_mask_pol', help='Output file')
+    parser.add_argument('--mask_star', action='store', dest='fn_mask_star_pol', help='Output file')
+    parser.add_argument('--mask_bleed', action='store', dest='fn_mask_bleed_pol', help='Output file')
+    parser.add_argument('--ccdgon', action='store', dest='fn_ccdgon_pol', help='Output file')
+    parser.add_argument('--molyswgt', action='store', dest='fn_molys_weight_pol', help='Output file')
+    parser.add_argument('--maglims', action='store', dest='fn_maglims_pol', help='Output file')
+    #parser.add_argument('--compare_plot1', action='store', dest='fn_compare_plot1', required=False)
+    #parser.add_argument('--compare_plot2', action='store', dest='fn_compare_plot2', required=False)
 
 
     parser.add_argument('--manglebindir', action='store', required=False)
@@ -166,24 +167,24 @@ def mangle_setup(args):
             config['molysprefix'] = config['runn'] + '_ ' + config['band'] + '_molys'
         if config['polprefix'] is None:
             config['polprefix'] = config['runn'] + '_' + config['band']
-
+        
     # make any directories needed for output molys files
     mdir = os.path.dirname(config['molysprefix'])
     miscutils.coremakedirs(mdir)
 
     # create default filenames if not provided on command line
-    if config['fn_ccdgon'] is None: # for ccdmolys
-        config['fn_ccdgon'] = outdir + config['polprefix'] + '_ccdgons_weight.pol'
-    if config['fn_mask'] is None:  # for ccdmolys
-        config['fn_mask'] = outdir + config['polprefix']  + '_ccdmolys_weight.pol'
-    if config['fn_mask_star'] is None:
-        config['fn_mask_star'] = outdir + config['polprefix']  + '_starmask.pol'
-    if config['fn_mask_bleed'] is None:
-        config['fn_mask_bleed'] = outdir + config['polprefix']  + '_bleedmask.pol'
-    if config['fn_molys_weight'] is None:
-        config['fn_molys_weight'] = outdir + config['polprefix'] +'_molys_weight.pol'
-    if config['fn_maglims'] is None:
-        config['fn_maglims'] = outdir + config['polprefix'] +'_maglims.pol'
+    if config['fn_ccdgon_pol'] is None: # for ccdmolys
+        config['fn_ccdgon_pol'] = outdir + config['polprefix'] + '_ccdgons_weight.pol'
+    if config['fn_mask_pol'] is None:  # for ccdmolys
+        config['fn_mask_pol'] = outdir + config['polprefix']  + '_ccdmolys_weight.pol'
+    if config['fn_mask_star_pol'] is None:
+        config['fn_mask_star_pol'] = outdir + config['polprefix']  + '_starmask.pol'
+    if config['fn_mask_bleed_pol'] is None:
+        config['fn_mask_bleed_pol'] = outdir + config['polprefix']  + '_bleedmask.pol'
+    if config['fn_molys_weight_pol'] is None:
+        config['fn_molys_weight_pol'] = outdir + config['polprefix'] +'_molys_weight.pol'
+    if config['fn_maglims_pol'] is None:
+        config['fn_maglims_pol'] = outdir + config['polprefix'] +'_maglims.pol'
 
 
     if config['logdir'] is not None:
@@ -329,7 +330,7 @@ def run_mangle_workflow(config):
     # set up gtt with red filenames for future queries
     #mdb.load_gtt_red_from_nwgint(dbi, nwgint_tab['FILENAME'])
     # query the DB to get information about the images
-    Image_tab = mdb.get_redimg_info(dbi)
+    #Image_tab = mdb.get_redimg_info(dbi)
 
     # Add optional skyvar plotting?
 
@@ -348,27 +349,29 @@ def run_mangle_workflow(config):
     sm.starmask(config, Image_tab, dbi)
     print 'Done'
 
-    if config['fn_compare_plot1'] is   None:
+    if config['pltprefix'] is not None:
+        fn_plt1 = config['pltprefix'] + '_comp1.png'
         print '\n########## Creating comparison plot 1'
-        nc.make_comp(config['coadd'], config['fn_molys_weight'], 
-                     config['fn_mask_star'], config['fn_mask_bleed'],
-                     config['fn_compare_plot1'], 
+        nc.make_comp(config['fn_coadd'], config['fn_molys_weight_pol'], 
+                     config['fn_mask_star_pol'], config['fn_mask_bleed_pol'],
+                     fn_plt1,
                      limitx=np.arange(000, 10000, 10), limity=np.arange(00, 10000,10))
         print 'Done'
 
-    if config['fn_compare_plot2'] is   None:
+    if config['pltprefix'] is not None:
         print '\n########## Creating comparison plot 2'
+        fn_plt2 = config['pltprefix'] + '_comp2.png'
         r1=np.random.randint(0, 10000-200)
         r2=np.random.randint(0, 10000-200)
-        nc.make_comp(config['coadd'], config['fn_molys_weight'], 
-                     config['fn_mask_star'], config['fn_mask_bleed'],
-                     config['fn_compare_plot2'], 
+        nc.make_comp(config['fn_coadd'], config['fn_molys_weight_pol'], 
+                     config['fn_mask_star_pol'], config['fn_mask_bleed_pol'],
+                     fn_plt2,
                      limitx=np.arange(r1, r1+200, 1), limity=np.arange(r2, r2+200,1))
         print 'Done'
 
-    if config['dbcsv'] is not None:
+    if config['dbprefix'] is not None:
         print '\n########## Creating csv files for database ingestion'
-        dbif.make_csv_files(config,Image_tab, dbi)
+        dbif.make_csv_files(config, Image_tab, dbi)
         print 'Done'
 
     print 'Finished mangle'

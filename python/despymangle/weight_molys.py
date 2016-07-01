@@ -59,12 +59,15 @@ def make_syste_masks(keyword, config, Nmolys, fn_reduced, Image_tab, fnprefix):
 
     f.close()
     fnprefix += '_' + keyword
-    np.savetxt(fnprefix+'.SUM', tab_exptime[0, :])
-    np.savetxt(fnprefix+'.MIN', tab_exptime[1, :])
-    np.savetxt(fnprefix+'.MAX', tab_exptime[2, :])
-    np.savetxt(fnprefix+'.MEDIAN', tab_exptime[3, :])
-    np.savetxt(fnprefix+'.MEAN', tab_exptime[4, :])
-    np.savetxt(fnprefix+'.WMEAN', tab_exptime[5, :])
+
+    # save filenames for other parts of mangle
+    suffix = ['SUM', 'MIN', 'MAX', 'MEDIAN', 'MEAN', 'WMEAN']
+    idx = 0
+    for suf in suffix: 
+        fkey = 'fn_%s_%s' % (keyword.lower(), suf.lower()) 
+        config[fkey] = fnprefix + '.' + suf
+        np.savetxt(config[fkey], tab_exptime[idx, :])
+        idx += 1
 
 
 ######################################################################
@@ -79,8 +82,8 @@ def weightmolys(config, Image_tab):
     #pfwidtemp = config['pfw_attempt_id']
     runn = config['runn']
     manglebindir = config['manglebindir']
-    fn_maglimmask = config['fn_maglims']
-    fn_weightmask = config['fn_molys_weight']
+    fn_maglimmask = config['fn_maglims_pol']
+    fn_weightmask = config['fn_molys_weight_pol']
 
     log = None
     if 'logdir' in config and config['logdir'] is not None:
@@ -93,13 +96,19 @@ def weightmolys(config, Image_tab):
     outdir = ''
     if config['outputdir'] is not None:
         outdir = config['outputdir'] + '/'
+        if not outdir.endswith('/'):
+            outdir += '/'
     fnprefix = outdir + config['molysprefix']
-    fn_reduced = fnprefix + '.red'
-    fn_count = fnprefix + '.count'
-    fn_weight = fnprefix + '.weight'
-    fn_maglims = fnprefix + '.maglims'
-    fn_time = fnprefix + '.time'
-    fn_area = fnprefix + '.area'
+
+    for suffix in ['red', 'count', 'weight', 'maglims', 'time', 'area']:
+        config['fn_molys_%s' % suffix] = fnprefix + '.' + suffix
+
+    fn_reduced = config['fn_molys_red']
+    fn_count = config['fn_molys_count']
+    fn_weight = config['fn_molys_weight']
+    fn_maglims = config['fn_molys_maglims']
+    fn_time = config['fn_molys_time']
+    fn_area = config['fn_molys_area']
 
     #fn_bitmask = config['molysprefix'] + '.bitmask'
     #fn_starbitmask = config['outputdir']+'/%s_starbitmask_%s.pol'%(runn, band)
@@ -108,7 +117,7 @@ def weightmolys(config, Image_tab):
     #find midpoints of mask polygons
 
     jfn_mask = 'jmask_%s_%s' % (tileid, band)  ### jfn_mask is a copy of the ccdmolys_weight.pol
-    copyfile(config['fn_mask'], jfn_mask)
+    copyfile(config['fn_mask_pol'], jfn_mask)
 
     jfn_mid = 'jmid_%s_%s' % (tileid, band)    ### jfn_mid contains the midpoint of the molygons
     cmd = 'poly2poly -om %s %s' % (jfn_mask, jfn_mid)
@@ -116,7 +125,7 @@ def weightmolys(config, Image_tab):
 
     #use polyid to get id numbers of input reduced images
     jfn_ccdgon = 'jccdgon%s_%s' % (tileid, band)
-    copyfile(config['fn_ccdgon'], jfn_ccdgon)
+    copyfile(config['fn_ccdgon_pol'], jfn_ccdgon)
 
     jfn_f = 'jf_%s_%s' % (tileid, band)
     cmd = 'polyid %s %s %s' % (jfn_ccdgon, jfn_mid, jfn_f)
