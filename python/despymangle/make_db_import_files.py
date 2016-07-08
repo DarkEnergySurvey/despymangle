@@ -81,7 +81,7 @@ def make_csv_coadd_object_molygon(config, fn_csv, coadd_object_tab):
     IS_INBLEED = 4
     ISNOT_INTOLY = 8
     
-    linefmt = '%d,%d,%d'
+    linefmt = '%d,%s,%s,%d,%d'
     g = open(fn_csv, 'w')
     for i in range(0, len(ra)):
         molygon_id_x = A[0][i]
@@ -90,7 +90,8 @@ def make_csv_coadd_object_molygon(config, fn_csv, coadd_object_tab):
                         IS_INBLEED * (bleed[i] >= 0) + \
                         ISNOT_INTOLY * (tol[i] < 0)
      
-        print >>g, linefmt % (coadd_object_tab['ID'][i], molygon_id_x, mangle_flag_x)
+        print >>g, linefmt % (coadd_object_tab['ID'][i], config['pfw_attempt_id'], config['band'], 
+                              molygon_id_x, mangle_flag_x)
     g.close()
 
 
@@ -120,7 +121,7 @@ def make_csv_ccdgon(config, fn_csv, Image_tab, ra, dec, log):
 
     id2idx = id2indices(Image_tab, ids)
     
-    linefmt = '%d,%s,%s,%s,%f,%s'
+    linefmt = '%d,%s,%s,%s,%f,%s,%s'
     g = open(fn_csv, 'w')
     for i in range(0, len(ids)):
         #print i
@@ -131,7 +132,7 @@ def make_csv_ccdgon(config, fn_csv, Image_tab, ra, dec, log):
         else:
             raise KeyError('Invalid amp num for image #%s (%s)' % (i, id2idx[1][i]))
         print >>g, linefmt % (ids[i], red_image_filename[i], coadd_filename, 
-                              amp, weights[i], config['pfw_attempt_id'])
+                              amp, weights[i], config['pfw_attempt_id'], config['band'])
     g.close()
 
     if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
