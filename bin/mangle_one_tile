@@ -61,6 +61,7 @@ def parse_args(argv):
     parser.add_argument('--list_redimg', action='store', required=True)
     parser.add_argument('--list_nwgint', action='store', required=True)
     parser.add_argument('--coadd', action='store', dest='fn_coadd', required=True)
+    parser.add_argument('--coadd_cat', action='store', dest='fn_coadd_cat', required=False)
     parser.add_argument('--poltiles', action='store', help='Automatically set if wget_pols')
     parser.add_argument('--poltolys', action='store', help='Automatically set if wget_pols')
     parser.add_argument('--paramfile', action='store', required=False,
@@ -164,27 +165,35 @@ def mangle_setup(args):
         outdir = config['outputdir']
 
         if config['molysprefix'] is None:
-            config['molysprefix'] = config['runn'] + '_ ' + config['band'] + '_molys'
+            config['molysprefix'] = outdir + '/' + config['runn'] + '_ ' + config['band'] + '_molys'
         if config['polprefix'] is None:
-            config['polprefix'] = config['runn'] + '_' + config['band']
+            config['polprefix'] = outdir + '/' + config['runn'] + '_' + config['band']
         
-    # make any directories needed for output molys files
+    # make any directories needed for output files
     mdir = os.path.dirname(config['molysprefix'])
     miscutils.coremakedirs(mdir)
+    mdir = os.path.dirname(config['polprefix'])
+    miscutils.coremakedirs(mdir)
+    if config['pltprefix'] is not None:
+        mdir = os.path.dirname(config['pltprefix'])
+        miscutils.coremakedirs(mdir)
+    if config['dbprefix'] is not None:
+        mdir = os.path.dirname(config['dbprefix'])
+        miscutils.coremakedirs(mdir)
 
     # create default filenames if not provided on command line
     if config['fn_ccdgon_pol'] is None: # for ccdmolys
-        config['fn_ccdgon_pol'] = outdir + config['polprefix'] + '_ccdgons_weight.pol'
+        config['fn_ccdgon_pol'] = config['polprefix'] + '_ccdgons_weight.pol'
     if config['fn_mask_pol'] is None:  # for ccdmolys
-        config['fn_mask_pol'] = outdir + config['polprefix']  + '_ccdmolys_weight.pol'
+        config['fn_mask_pol'] = config['polprefix']  + '_ccdmolys_weight.pol'
     if config['fn_mask_star_pol'] is None:
-        config['fn_mask_star_pol'] = outdir + config['polprefix']  + '_starmask.pol'
+        config['fn_mask_star_pol'] = config['polprefix']  + '_starmask.pol'
     if config['fn_mask_bleed_pol'] is None:
-        config['fn_mask_bleed_pol'] = outdir + config['polprefix']  + '_bleedmask.pol'
+        config['fn_mask_bleed_pol'] = config['polprefix']  + '_bleedmask.pol'
     if config['fn_molys_weight_pol'] is None:
-        config['fn_molys_weight_pol'] = outdir + config['polprefix'] +'_molys_weight.pol'
+        config['fn_molys_weight_pol'] = config['polprefix'] +'_molys_weight.pol'
     if config['fn_maglims_pol'] is None:
-        config['fn_maglims_pol'] = outdir + config['polprefix'] +'_maglims.pol'
+        config['fn_maglims_pol'] = config['polprefix'] +'_maglims.pol'
 
 
     if config['logdir'] is not None:
@@ -194,6 +203,12 @@ def mangle_setup(args):
         config['schema'] = ''
     elif not config['schema'].endswith('.'):
         config['schema'] += '.'
+
+    if config['ra_column'] is None:
+        config['ra_column'] = 'ALPHAWIN_J2000'
+
+    if config['dec_column'] is None:
+        config['dec_column'] = 'DELTAWIN_J2000'
 
     return config
 

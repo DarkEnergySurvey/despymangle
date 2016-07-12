@@ -259,19 +259,12 @@ def get_tileid(tilename, db_section=None, des_services=None):
 
 
 ###################################################################
-def get_coadd_object_info(dbi, tilename, pfw_attempt_id, dbschema='', 
-                          ra_column=None, dec_column=None):
+def get_coadd_object_info(dbi, tilename, pfw_attempt_id,
+                          ra_column, dec_column, dbschema=''):
     """ Get id and location information for coadd objects """
 
-    # Note: will pass in None if not set in config, 
-    # so have to check & set here instead of using default values
-    if ra_column is None:
-        ra_column='alphawin_j2000'
-
-    if dec_column is None:
-        dec_column='deltawin_j2000'
     
-    sql = """select co.id, co.filename, co.object_number, 
+    sql = """select co.id, co.filename, co.object_number as 'number', 
                     co.{racol} as ra, co.{deccol} as dec 
              from {schema}coadd_object co, {schema}catalog c 
              where co.filename=c.filename and 

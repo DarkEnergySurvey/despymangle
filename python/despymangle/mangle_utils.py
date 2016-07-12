@@ -1,13 +1,22 @@
-import numpy as np
+#!/usr/bin/env python
+
+# $Id$
+# $Rev::                                  $:  # Revision of last commit.
+# $LastChangedBy::                        $:  # Author of last commit.
+# $LastChangedDate::                      $:  # Date of last commit.import numpy as np
+
+import fitsio
 import os
 import shutil
 import shlex
-##import set_basic_mangle_params_ABLTEST as par
 import matplotlib.pyplot as plt
-import despydb
-import sys
-from despyastro import wcsutil
 import subprocess
+import sys
+import numpy as np
+
+import despydb
+from despyastro import wcsutil
+
 
 
 
@@ -505,4 +514,8 @@ def get_neighbor_tolys(project, tileid,tiledir,  outfile, log):
     os.system('rm %s'%jj)
     os.system('rm %s %s  %s  %s'%('jtolyfile', 'jneightilelist', 'jneigtile', 'jout'))
 
-   
+
+######################################################################
+def read_coadd_object_cat(dbi, fn_coadd_cat, ra_column, dec_column):
+    data = fitsio.read(fn_coadd_cat, columns=['NUMBER', ra_column, dec_column], ext=1)
+    return data
