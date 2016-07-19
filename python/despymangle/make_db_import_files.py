@@ -263,7 +263,7 @@ def make_csv_molygon(config, fn_csv, molyids, log):
         print >>g, linefmt % (molyids[i], coadd_filename, coaddtile_id, band, num_images[i], total_exptime[i], area_str[i], wavg_airmass[i], wavg_fwhm[i], mag_limit[i], ra_mid[i], dec_mid[i], config['pfw_attempt_id'])
     g.close()
 
-   if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
+    if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
         os.remove(jfn_mid)
 
 
