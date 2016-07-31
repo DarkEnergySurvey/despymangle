@@ -311,12 +311,17 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
 
             if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
                 for tempf in stl:
-                    os.remove(tempf)
+                    if os.path.exists(tempf):
+                        os.remove(tempf)
+                    else:
+                        print "WARN: Could not find temporary file to delete (%s)" % tempf
 
                 for tempf in [jfn_pol, jfn_ss, jfn_pol_st, jfn_ss_st, 
                               jfn_b, jfn_p, jfn_edges0_t, jfn_edges1_t]:
-                    os.remove(tempf)
-
+                    if os.path.exists(tempf):
+                        os.remove(tempf)
+                    else:
+                        print "WARN: Could not find temporary file to delete (%s)" % tempf
 
     jfn_ss2 = 'jss2_%s_%s' % (tileid, band)
     cmd = 'snap -S %s %s %s %s' % (config['snap'], mtol, ' '.join(st_list), jfn_ss2)
@@ -338,6 +343,12 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
 
     if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
         for tempf in [jfn_ss2, jfn_p, jfn_s, jfn_r]:
-            os.remove(tempf)
+            if os.path.exists(tempf):
+                os.remove(tempf)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % tempf
         for tempf in st_list:
-            os.remove(tempf)
+            if os.path.exists(tempf):
+                os.remove(tempf)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % tempf

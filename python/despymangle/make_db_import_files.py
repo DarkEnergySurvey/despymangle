@@ -187,8 +187,11 @@ def make_csv_ccdgon(config, fn_csv, Image_tab, log):
     g.close()
 
     if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
-        os.remove(jfn_weights)
-        os.remove(jfn_ids)
+        for tempf in [jfn_weights, jfn_ids]:
+            if os.path.exists(tempf):
+                os.remove(tempf)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % tempf
 
 ######################################################################
 #def make_csv_ccdgon_Y1A1(config, fn_csv, Image_tab, log):
@@ -264,7 +267,10 @@ def make_csv_molygon(config, fn_csv, molyids, log):
     g.close()
 
     if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
-        os.remove(jfn_mid)
+        if os.path.exists(jfn_mid):
+            os.remove(jfn_mid)
+        else:
+            print "WARN: Could not find temporary file to delete (%s)" % jfn_mid
 
 
 
@@ -325,7 +331,10 @@ def make_csv_files(config, Image_tab, dbi):
     miscutils.fwdebug_print("Number of ids from moly weight pol = %s" % len(moly_ids))
 
     if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
-        os.remove(jfn_ids)
+        if os.path.exists(jfn_ids):
+            os.remove(jfn_ids)
+        else:
+            print "WARN: Could not find temporary file to delete (%s)" % jfn_ids
 
     #################################
     #### make coadd_object_molygon .csv file

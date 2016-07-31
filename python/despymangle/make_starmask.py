@@ -77,9 +77,15 @@ def starmask(config, Image_tab, dbi):
     # remove tmp files
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
         for tempf in bl_list:
-            os.remove(tempf)
+            if os.path.exists(tempf):
+                os.remove(tempf)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % tempf
         for tempf in [jfn_bleed1, jfn_bleed2, jfn_bleed3]:
-            os.remove(tempf)
+            if os.path.exists(tempf):
+                os.remove(tempf)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % tempf
 
     jfn_rbleed = 'jrbleed%s.pol' % (band)
     cmd = 'rasterize -T %s %s %s %s' % (mtol, tilefile, jfn_bleed4, jfn_rbleed)
@@ -91,7 +97,10 @@ def starmask(config, Image_tab, dbi):
     # remove tmp files
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
         for tempf in [jfn_bleed4, jfn_rbleed]:
-            os.remove(tempf)
+            if os.path.exists(tempf):
+                os.remove(tempf)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % tempf
 
     print  'bleedtrails done'
 
@@ -145,7 +154,10 @@ def starmask(config, Image_tab, dbi):
 
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
         for tempf in [jfn_star, jfn_star1, jfn_star2, jfn_star3, jfn_star4]:
-            os.remove(tempf)
+            if os.path.exists(tempf):
+                os.remove(tempf)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % tempf
 
     ###cmd = 'pixelize %s %s jstarss%s.pol jstarssp%s' % (pix, mtol, band, band)
     ###mu.runcmd(cmd, manglebindir, log)
@@ -158,7 +170,10 @@ def starmask(config, Image_tab, dbi):
     copyfile(jfn_rstar, fn_mask_star)
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
         for tempf in [jfn_star5, jfn_rstar, jfn_weightstar]:
-            os.remove(tempf)
+            if os.path.exists(tempf):
+                os.remove(tempf)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % tempf
 
 
 ######################################################################

@@ -51,7 +51,7 @@ def runcmd(cmd, manglebindir=None, log=None):
         raise
 
     if log:
-        close(mystdpipe)
+        mystdpipe.close()
 
     if process.returncode != 0:
         raise ValueError("non-zero exit code")

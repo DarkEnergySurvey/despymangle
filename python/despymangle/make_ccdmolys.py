@@ -40,4 +40,7 @@ def ccdmolys(config):
 
     if config['cleanup'] is not None and config['cleanup'].upper() == 'Y':
         for tempf in [jfn_b, jfn_u, jfn_ccdgon, jfn_mask]:
-            os.remove(tempf)
+            if os.path.exists(tempf):
+                os.remove(tempf)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % tempf

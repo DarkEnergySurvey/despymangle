@@ -143,7 +143,10 @@ def weightmolys(config, Image_tab):
 
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
         for f in [jfn_reduced, jfn_count, jfn_f]:
-            os.remove(f)
+            if os.path.exists(f):
+                os.remove(f)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % f
 
     #write areas
     jfn_a = 'ja_%s_%s' % (tileid, band)
@@ -154,8 +157,11 @@ def weightmolys(config, Image_tab):
     os.system("awk 'NR>2{print $1}' %s > %s " % (jfn_a, jfn_area))
     copyfile(jfn_area, fn_area)
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
-        for junkf in [jfn_area, jfn_a]:
-            os.remove(junkf)
+        for tempf in [jfn_area, jfn_a]:
+            if os.path.exists(tempf):
+                os.remove(tempf)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % tempf
 
     jfn_w = 'jw_%s_%s' % (tileid, band)
 
@@ -230,8 +236,11 @@ def weightmolys(config, Image_tab):
     copyfile(jfn_time, fn_time)
 
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
-        for junkf in [jfn_time, jfn_w]:
-            os.remove(junkf)
+        for tempf in [jfn_time, jfn_w]:
+            if os.path.exists(tempf):
+                os.remove(tempf)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % tempf
 
 ### Do coadd weigthing
 ###    cmd = 'polyid -W %s %s %s' % (jfn_ccdgon, jfn_mid, jfn_f)
@@ -243,4 +252,7 @@ def weightmolys(config, Image_tab):
         for tempf in [jfn_ccdgon, jfn_jmaglimmask, jfn_weight,
                       jfn_mask, jfn_maglims,
                       jfn_f, jfn_fs, jfn_mid]:
-            os.remove(tempf)
+            if os.path.exists(tempf):
+                os.remove(tempf)
+            else:
+                print "WARN: Could not find temporary file to delete (%s)" % tempf
