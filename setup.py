@@ -6,10 +6,10 @@ bin_files = glob.glob("bin/*")
 
 # The main call
 setup(name='despymangle',
-      version ='2.1.1',
+      version ='2.2.0',
       license = "GPL",
       description = "DES mangle framework",
-      author = "Aurelien Benoit-Levy, Molly Swanson, Michelle",
+      author = "Aurelien Benoit-Levy, Molly Swanson, Michelle Gower",
       author_email = "ucapab2@ucl.ac.uk",
       packages = ['despymangle'],
       package_dir = {'': 'python'},
