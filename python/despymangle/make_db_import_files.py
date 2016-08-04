@@ -59,18 +59,22 @@ def make_csv_coadd_object_molygon(config, fn_csv, coadd_object_tab):
 
     if config['pltprefix'] is not None:
         plt.figure(1)
+        plt.clf()
         plt.plot(ra[tol < 0], dec[tol < 0], 'k.')
         plt.savefig('%s_Object-not-in-tolygon.png' % config['pltprefix'])
 
         plt.figure(2)
+        plt.clf()
         plt.plot(ra[A[0] < 0], dec[A[0] < 0], 'k.')
         plt.savefig('%s_Objects-not-in-geometry-masks.png' % config['pltprefix'])
 
         plt.figure(3)
+        plt.clf()
         plt.plot(ra[star >= 0], dec[star >= 0], 'k.')
         plt.savefig('%s_Objects-in-star-mask.png' % config['pltprefix'])
 
         plt.figure(4)
+        plt.clf()
         plt.plot(ra[bleed > 0], dec[bleed > 0], 'k.')
         plt.savefig('%s_Objects-in-bleed-mask.png' % config['pltprefix'])
 

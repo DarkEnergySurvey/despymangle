@@ -91,10 +91,11 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
         ### GET CCDNUM.
         CCDNUM = hdr['CCDNUM']
 
+
         b1 = int(config['border1'])
         b2 = int(config['border2'])
 
-        if CCDNUM > 31:
+        if CCDNUM > 32:    ###  changed 31 to 32. 
             dataseca='[1:1024,1:4096]'     # Data section from amp A
             datasecb='[1025:2048,1:4096]'  # Data section from amp B
         else:
@@ -224,6 +225,7 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
                 st_list.append(jfn_edges1)
 
         else: ### Streaks !!!
+            print "Streaks !!!"
             if miscutils.fwdebug_check(3, "MAKECCDGONS_DEBUG"):
                 miscutils.fwdebug_print("%s streaks for image %s (pos: %s)" % (len(h), Image_tab['FILENAME'][i], h))
             if miscutils.fwdebug_check(9, "MAKECCDGONS_DEBUG"):
@@ -275,7 +277,7 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
             if CCDNUM != 31:
                 cmd = 'poly2poly %s %s %s %s' % (mtol, jfn_edges0_t, jfn_edges1_t, jfn_pol)
             else:
-                cmd = 'poly2poly %s %s %s' % (mtol, jfn_edges1, jfn_pol)
+                cmd = 'poly2poly %s %s %s' % (mtol, jfn_edges1_t, jfn_pol)    #### This was the fix Aug. 4 2016. replaced jfn_edges1 by jfn_edges1_t
             mu.runcmd(cmd, manglebindir, log)
 
             jfn_ss = 'jss_%s_%s_%s' % (tileid, band, i)
@@ -315,13 +317,22 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
                         os.remove(tempf)
                     else:
                         print "WARN: Could not find temporary file to delete (%s)" % tempf
+                if CCDNUM !=31:
+                    for tempf in [jfn_pol, jfn_ss, jfn_pol_st, jfn_ss_st, 
+                                  jfn_b, jfn_p, jfn_edges0_t, jfn_edges1_t]:
+                        if os.path.exists(tempf):
+                            os.remove(tempf)
+                        else:
+                            print "WARN: Could not find temporary file to delete (%s)" % tempf
+                else:  ### Added this. Indeed it tried to remove some of the stuffs made for ccdnum-31 ampA whcih do not exist
+                    for tempf in [jfn_pol, jfn_ss, jfn_pol_st, jfn_ss_st, 
+                                  jfn_b, jfn_p, jfn_edges1_t]:
+                        if os.path.exists(tempf):
+                            os.remove(tempf)
+                        else:
+                            print "WARN: Could not find temporary file to delete (%s)" % tempf
 
-                for tempf in [jfn_pol, jfn_ss, jfn_pol_st, jfn_ss_st, 
-                              jfn_b, jfn_p, jfn_edges0_t, jfn_edges1_t]:
-                    if os.path.exists(tempf):
-                        os.remove(tempf)
-                    else:
-                        print "WARN: Could not find temporary file to delete (%s)" % tempf
+
 
     jfn_ss2 = 'jss2_%s_%s' % (tileid, band)
     cmd = 'snap -S %s %s %s %s' % (config['snap'], mtol, ' '.join(st_list), jfn_ss2)
