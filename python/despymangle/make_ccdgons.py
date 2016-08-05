@@ -95,13 +95,22 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
         b1 = int(config['border1'])
         b2 = int(config['border2'])
 
-        if CCDNUM > 32:    ###  changed 31 to 32. 
+        # examples of datasec
+        #DES2356+0043_r5p02_D00239652_i_c30_nwgint.fits
+        #DATASECA= '[1025:2048,1:4096]' / Data section from amp A
+        #DATASECB= '[1:1024,1:4096]'    / Data section from amp B
+        #DES2356+0043_r5p02_D00239652_i_c31_nwgint.fits
+        #DATASECA= '[1025:2048,1:4096]' / Data section from amp A
+        #DATASECB= '[1:1024,1:4096]'    / Data section from amp B
+        #DES2356+0043_r5p02_D00243480_z_c32_nwgint.fits
+        #DATASECA= '[1:1024,1:4096]'    / Data section from amp A
+        #DATASECB= '[1025:2048,1:4096]' / Data section from amp B
+        if CCDNUM >= 32:
             dataseca='[1:1024,1:4096]'     # Data section from amp A
             datasecb='[1025:2048,1:4096]'  # Data section from amp B
         else:
             dataseca='[1025:2048,1:4096]' # Data section from amp A
             datasecb='[1:1024,1:4096]'     # Data section from amp B
-
 
         ### GET corners and middles RA, DEC.
 
