@@ -3,6 +3,8 @@
 import sys
 import numpy as np
 import pymangle as pym
+import matplotlib
+matplotlib.use('Agg')
 import pylab
 
 from despyastro import wcsutil

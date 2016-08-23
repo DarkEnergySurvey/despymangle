@@ -9,15 +9,14 @@ import fitsio
 import os
 import shutil
 import shlex
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import subprocess
 import sys
 import numpy as np
-
 import despydb
 from despyastro import wcsutil
-
-
 
 
 def runcmd(cmd, manglebindir=None, log=None):
