@@ -422,7 +422,7 @@ def get_tileid(tiledir, project, tilename):
         desdmfile = None
     
     section="db-desoper"
-    dbh = despydb.desdbi.DesDbi(desdmfile,section)
+    dbh = despydb.desdbi.DesDbi(desdmfile,section,True)
 
 
 

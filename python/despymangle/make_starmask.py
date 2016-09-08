@@ -36,7 +36,7 @@ def starmask(config, Image_tab, dbi):
     ### BLEED TRAIL
 
     if dbi is None:
-        dbi = desdbi.DesDbi(config['des_services'], config['db_section'])
+        dbi = desdbi.DesDbi(config['des_services'], config['db_section'], True)
 
     #mdb.load_gtt_filename(dbi, Image_tab['FILENAME'])
     trailbox_tab = mdb.get_bleedtrail_info(dbi, config['schema'], Image_tab['FILENAME'])

@@ -321,7 +321,7 @@ def run_mangle_workflow(config):
 
     #A ebi.extract_band_info(CCDs_filename, band,tilename,outputdir, logdir)
     print '########## Getting image info1'
-    dbi = desdbi.DesDbi(config['des_services'], config['db_section'])
+    dbi = desdbi.DesDbi(config['des_services'], config['db_section'], True)
 
     nwgint_tab = get_nwgint_info(config['list_nwgint'], dbi, config['schema'])
     Image_tab = get_redimg_info(config['list_redimg'], config['pfw_attempt_id'], 

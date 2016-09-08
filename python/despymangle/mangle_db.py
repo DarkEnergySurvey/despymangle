@@ -4,6 +4,7 @@
 
 import despyastro
 from despymisc import miscutils
+import despydb
 
 
 ###################################################################
@@ -245,7 +246,7 @@ def get_nwgint_info(dbi, schema='', nwgintfiles=None):
 def get_tileid(tilename, db_section=None, des_services=None):
     """ Get tile id from database for given tilename """
 
-    dbh = despydb.desdbi.DesDbi(des_services, db_section)
+    dbh = despydb.desdbi.DesDbi(des_services, db_section, True)
 
     # Prepare the query
     query = """select id from coaddtile_geom where tilename='%s'""" % tilename

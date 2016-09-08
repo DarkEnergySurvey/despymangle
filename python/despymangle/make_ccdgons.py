@@ -68,7 +68,7 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
 
     #######  Get data for streaks.
     if dbi is None:
-        dbi = desdbi.DesDbi(config['des_services'], config['db_section'])
+        dbi = desdbi.DesDbi(config['des_services'], config['db_section'], True)
 
     streak_tab = mdb.get_streak_info(dbi, config['schema'], Image_tab['FILENAME'])
 
