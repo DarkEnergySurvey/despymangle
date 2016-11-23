@@ -54,17 +54,9 @@ def load_gtt_red_from_nwgint(dbi, nwgintfiles=None):
 def get_redimg_info(dbi, schema='', redfiles=None):
     """ Read image information from database for reduced images """
 
-    #if redfiles is not None:
-    #    load_gtt_filename(dbi, redfiles)
-    #sql = """select i.* from image i, opm_filename_gtt g where i.filename=g.filename"""
-
-    filenames = []
-    for fulln in redfiles:
-        filenames.append(miscutils.parse_fullname(fulln, miscutils.CU_PARSE_FILENAME))
-
-    sql = """select i.* from %simage i where 
-             i.filename in ('%s')
-          """ % (schema, "','".join(filenames)) 
+    if redfiles is not None:
+        load_gtt_filename(dbi, redfiles)
+    sql = """select i.* from image i, opm_filename_gtt g where i.filename=g.filename"""
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)
@@ -77,25 +69,14 @@ def get_redimg_info(dbi, schema='', redfiles=None):
 def get_streak_info(dbi, schema='', redfiles=None):
     """ Read streak information from database """
 
-    #if redfiles is not None:
-    #    load_gtt_filename(dbi, redfiles)
-    #
-    #sql = """select i.filename as redfilename, s.*
-    #         from streak s, catalog c, image i, opm_filename_gtt g where
-    #         s.filename=c.filename and i.filename=g.filename and
-    #         i.expnum=c.expnum and i.ccdnum=c.ccdnum and i.pfw_attempt_id=c.pfw_attempt_id
-    #      """
-
-    filenames = []
-    for fulln in redfiles:
-        filenames.append(miscutils.parse_fullname(fulln, miscutils.CU_PARSE_FILENAME))
-
+    if redfiles is not None:
+        load_gtt_filename(dbi, redfiles)
+    
     sql = """select i.filename as redfilename, s.*
-             from %sstreak s, %scatalog c, %simage i where
-             s.filename=c.filename and
+             from streak s, catalog c, image i, opm_filename_gtt g where
+             s.filename=c.filename and i.filename=g.filename and
              i.expnum=c.expnum and i.ccdnum=c.ccdnum and i.pfw_attempt_id=c.pfw_attempt_id
-             and i.filename in ('%s')
-          """ % (schema, schema, schema, "','".join(filenames))
+          """
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)
@@ -108,25 +89,14 @@ def get_streak_info(dbi, schema='', redfiles=None):
 def get_satstar_info(dbi, schema='', redfiles=None):
     """ Read satstar information from database """
 
-    #if redfiles is not None:
-    #    load_gtt_filename(dbi, redfiles)
-    #
-    #sql = """select i.filename as redfilename, s.*
-    #         from satstar s, catalog c, image i, opm_filename_gtt g where
-    #         s.filename=c.filename and i.filename=g.filename and
-    #         i.expnum=c.expnum and i.ccdnum=c.ccdnum and i.pfw_attempt_id=c.pfw_attempt_id
-    #      """
-
-    filenames = []
-    for fulln in redfiles:
-        filenames.append(miscutils.parse_fullname(fulln, miscutils.CU_PARSE_FILENAME))
-
+    if redfiles is not None:
+        load_gtt_filename(dbi, redfiles)
+    
     sql = """select i.filename as redfilename, s.*
-             from %ssatstar s, %scatalog c, %simage i where
-             s.filename=c.filename and 
+             from satstar s, catalog c, image i, opm_filename_gtt g where
+             s.filename=c.filename and i.filename=g.filename and
              i.expnum=c.expnum and i.ccdnum=c.ccdnum and i.pfw_attempt_id=c.pfw_attempt_id
-             and i.filename in ('%s')
-          """ % (schema, schema, schema, "','".join(filenames))
+          """
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)
@@ -139,25 +109,14 @@ def get_satstar_info(dbi, schema='', redfiles=None):
 def get_bleedtrail_info(dbi, schema='', redfiles=None):
     """ Read bleedtrail information from database """
 
-    #if redfiles is not None:
-    #    load_gtt_filename(dbi, redfiles)
-    #
-    #sql = """select i.filename as redfilename, b.*
-    #         from bleedtrail b, catalog c, image i, opm_filename_gtt g where
-    #         b.filename=c.filename and i.filename=g.filename and
-    #         i.expnum=c.expnum and i.ccdnum=c.ccdnum and i.pfw_attempt_id=c.pfw_attempt_id
-    #      """
-
-    filenames = []
-    for fulln in redfiles:
-        filenames.append(miscutils.parse_fullname(fulln, miscutils.CU_PARSE_FILENAME))
-
+    if redfiles is not None:
+        load_gtt_filename(dbi, redfiles)
+    
     sql = """select i.filename as redfilename, b.*
-             from %sbleedtrail b, %scatalog c, %simage i where
-             b.filename=c.filename and 
+             from bleedtrail b, catalog c, image i, opm_filename_gtt g where
+             b.filename=c.filename and i.filename=g.filename and
              i.expnum=c.expnum and i.ccdnum=c.ccdnum and i.pfw_attempt_id=c.pfw_attempt_id
-             and i.filename in ('%s')
-          """ % (schema, schema, schema, "','".join(filenames))
+          """
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)
@@ -189,26 +148,15 @@ def get_headfile_info(dbi, me_attid, redfiles=None):
 def get_nwgint_info_from_reds(dbi, me_attid, redfiles=None):
     """ Read nwgint information from database """
 
-    #if redfiles is not None:
-    #    load_gtt_filename(dbi, redfiles)
-    #
-    #sql = """select i1.filename as redfilename, i2.*
-    #         from image i1, image i2, opm_filename_gtt g where
-    #         i1.filename=g.filename and
-    #         i1.expnum=i2.expnum and i1.ccdnum=i2.ccdnum and i2.pfw_attempt_id=%s
-    #         and i2.filetype='coadd_nwgint'
-    #      """ % (me_attid)
-
-    filenames = []
-    for fulln in redfiles:
-        filenames.append(miscutils.parse_fullname(fulln, miscutils.CU_PARSE_FILENAME))
-
+    if redfiles is not None:
+        load_gtt_filename(dbi, redfiles)
+    
     sql = """select i1.filename as redfilename, i2.*
-             from image i1, image i2 where
+             from image i1, image i2, opm_filename_gtt g where
+             i1.filename=g.filename and
              i1.expnum=i2.expnum and i1.ccdnum=i2.ccdnum and i2.pfw_attempt_id=%s
-             and i2.filetype='coadd_nwgint' and
-             i1.filename in ('%s')
-          """ % (me_attid, "','".join(filenames))
+             and i2.filetype='coadd_nwgint'
+          """ % (me_attid)
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)
@@ -221,19 +169,11 @@ def get_nwgint_info_from_reds(dbi, me_attid, redfiles=None):
 def get_nwgint_info(dbi, schema='', nwgintfiles=None):
     """ Read nwgint information from database """
 
-    #load_gtt_filename(dbi, nwgintfiles)
-    #sql = """select i.* from image i, opm_filename_gtt g where 
-    #         i.filename=g.filename and i.filetype='coadd_nwgint'
-    #      """ 
-
-    filenames = []
-    for fulln in nwgintfiles:
-        filenames.append(miscutils.parse_fullname(fulln, miscutils.CU_PARSE_FILENAME))
-
-    sql = """select i.* from %simage i where 
-             i.filetype='coadd_nwgint'
-             and i.filename in ('%s')
-          """ % (schema, "','".join(filenames)) 
+    if nwgintfiles is not None:
+        load_gtt_filename(dbi, nwgintfiles)
+    sql = """select i.* from image i, opm_filename_gtt g where 
+             i.filename=g.filename and i.filetype='coadd_nwgint'
+          """ 
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)
