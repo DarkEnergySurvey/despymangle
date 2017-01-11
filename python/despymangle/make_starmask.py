@@ -105,7 +105,7 @@ def starmask(config, Image_tab, dbi):
     print  'bleedtrails done'
 
     #### STARS
-    satstar_tab = mdb.get_satstar_info(dbi, config['schema'], Image_tab['FILENAME'])
+    satstar_tab = mdb.get_satstar_info(dbi, config['schema'], Image_tab['FILENAME'], config['max_radius'])
 
     print 'je suis la'
 

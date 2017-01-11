@@ -56,7 +56,9 @@ def get_redimg_info(dbi, schema='', redfiles=None):
 
     if redfiles is not None:
         load_gtt_filename(dbi, redfiles)
-    sql = """select i.* from image i, opm_filename_gtt g where i.filename=g.filename"""
+    sql = """select i.*, pq.fwhm_mean*0.263 as FWHM from image i, opm_filename_gtt g,miscfile m, 
+             psf_qa pq where i.filename=g.filename and m.pfw_attempt_id=i.pfw_attempt_id and
+             m.ccdnum=i.ccdnum and m.filename=pq.filename and m.filetype='xml_psfex' """
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)
@@ -86,7 +88,7 @@ def get_streak_info(dbi, schema='', redfiles=None):
 
 
 ###################################################################
-def get_satstar_info(dbi, schema='', redfiles=None):
+def get_satstar_info(dbi, schema='', redfiles=None, max_radius=400.0):
     """ Read satstar information from database """
 
     if redfiles is not None:
@@ -94,9 +96,9 @@ def get_satstar_info(dbi, schema='', redfiles=None):
     
     sql = """select i.filename as redfilename, s.*
              from satstar s, catalog c, image i, opm_filename_gtt g where
-             s.filename=c.filename and i.filename=g.filename and
+             s.filename=c.filename and s.radius<%f and i.filename=g.filename and
              i.expnum=c.expnum and i.ccdnum=c.ccdnum and i.pfw_attempt_id=c.pfw_attempt_id
-          """
+          """ % (max_radius)
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)

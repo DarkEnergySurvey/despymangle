@@ -10,15 +10,39 @@ import pylab
 from despyastro import wcsutil
 import fitsio
 
+class Empty_Mangle(object):
+    def __init__(self):
+        pass
+
+    def weight(self, ra, dec):
+        return 0.0
+
 def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
               limitx=np.arange(0, 10000, 10),
               limity=np.arange(0, 10000, 10)):
     """ Make comparison between coadd file and mangle outputs """
-    mg=pym.Mangle(fn_mg)
-    star=pym.Mangle(fn_star)
-    bleed=pym.Mangle(fn_bleed)
+    f = open(fn_mg, 'r')
+    line = f.readline()
+    if '0 polygons' in line:
+        mg = Empty_Mangle()
+    else:
+        mg = pym.Mangle(fn_mg)
 
-    data2,h2 = fitsio.read(coadd_fullname, ext='WGT', header=True)
+    f = open(fn_star, 'r')
+    line = f.readline()
+    if '0 polygons' in line:
+        star = Empty_Mangle()
+    else:
+        star = pym.Mangle(fn_star)
+
+    f = open(fn_bleed, 'r')
+    line = f.readline()
+    if '0 polygons' in line:
+        bleed = Empty_Mangle()
+    else:
+        bleed = pym.Mangle(fn_bleed)
+
+    data2, h2 = fitsio.read(coadd_fullname, ext='WGT', header=True)
     w2 = wcsutil.WCS(h2)
 
     A = np.array([limitx, limity])
@@ -76,4 +100,4 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
 
     pylab.savefig(plot_fullname)
 
-    del(mg, D, val, A, N ,P, rap)
+    del(mg, star, bleed, D, val, A, N, P, rap)
