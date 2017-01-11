@@ -55,6 +55,7 @@ def make_syste_masks(keyword, config, Nmolys, fn_reduced, Image_tab, fnprefix):
         tab_exptime[4, i] = np.mean(Image_tab[keyword][indices])
 
         weights = skyvars * 100 **   ((config['mzpglobal']-Image_tab['MAG_ZERO'][indices])/2.5)
+        weights = 1.0 /weights 
         tab_exptime[5, i] = np.sum(Image_tab[keyword][indices] * weights)/np.sum(weights)
 
     f.close()
