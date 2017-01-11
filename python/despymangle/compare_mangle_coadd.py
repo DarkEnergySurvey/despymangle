@@ -23,21 +23,21 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
     """ Make comparison between coadd file and mangle outputs """
     f = open(fn_mg, 'r')
     line = f.readline()
-    if '0 polygons' in line:
+    if line.startswith('0 polygons'):
         mg = Empty_Mangle()
     else:
         mg = pym.Mangle(fn_mg)
 
     f = open(fn_star, 'r')
     line = f.readline()
-    if '0 polygons' in line:
+    if line.startswith('0 polygons'):
         star = Empty_Mangle()
     else:
         star = pym.Mangle(fn_star)
 
     f = open(fn_bleed, 'r')
     line = f.readline()
-    if '0 polygons' in line:
+    if line.startswith('0 polygons'):
         bleed = Empty_Mangle()
     else:
         bleed = pym.Mangle(fn_bleed)
