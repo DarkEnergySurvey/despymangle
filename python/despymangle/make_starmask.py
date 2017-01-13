@@ -123,12 +123,9 @@ def starmask(config, Image_tab, dbi):
     for i in range(0, N_images_with_stars):
         print i
         ## get number of stars in this image
-        N_s = np.max(satstar_tab['RNUM'][np.where(satstar_tab['FILENAME'] == ufilenames[i])])
-
-        for j in range(N_s):
-            idx = np.where((satstar_tab['RNUM'] == j+1)*  (satstar_tab['FILENAME'] == ufilenames[i]))[0][0]
+        temp = np.where(satstar_tab['FILENAME'] == ufilenames[i])
+        for idx in temp[0].tolist():
             print >>fily, satstar_tab['RA'][idx], satstar_tab['DEC'][idx], satstar_tab['RADIUS'][idx]/60./60. * config['starscale']
-            ###        fily.close()
 
     fily.close()
 
