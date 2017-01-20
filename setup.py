@@ -6,7 +6,7 @@ bin_files = glob.glob("bin/*")
 
 # The main call
 setup(name='despymangle',
-      version ='2.2.6',
+      version ='2.2.7',
       license = "GPL",
       description = "DES mangle framework",
       author = "Aurelien Benoit-Levy, Molly Swanson, Michelle Gower, Doug Friedel",
