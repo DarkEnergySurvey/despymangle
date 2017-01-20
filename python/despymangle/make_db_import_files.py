@@ -17,6 +17,7 @@ import pymangle as pym
 
 import despymangle.mangle_db as mdb
 import despymangle.mangle_utils as mu
+import despymangle.EmptyMangle as em
 from despymisc import miscutils
 
 ######################################################################
@@ -42,10 +43,33 @@ def make_csv_coadd_object_molygon(config, fn_csv, coadd_object_tab):
     ra = coadd_object_tab[config['ra_column']]
     dec = coadd_object_tab[config['dec_column']]
 
-    toly_mask = pym.Mangle(config['poltolys'])
-    mangle_mask = pym.Mangle(config['fn_maglims_pol'])
-    star_mask = pym.Mangle(config['fn_mask_star_pol'])
-    bleed_mask = pym.Mangle(config['fn_mask_bleed_pol'])
+    f = open(config['poltolys'], 'r')
+    line = f.readline()
+    if line.startswith('0 polygons'):
+        toly_mask = em.Empty_Mangle()
+    else:
+        toly_mask = pym.Mangle(config['poltolys'])
+
+    f = open(config['fn_maglims_pol'], 'r')
+    line = f.readline()
+    if line.startswith('0 polygons'):
+        mangle_mask = em.Empty_Mangle()
+    else:
+        mangle_mask = pym.Mangle(config['fn_maglims_pol'])
+
+    f = open(config['fn_mask_star_pol'], 'r')
+    line = f.readline()
+    if line.startswith('0 polygons'):
+        star_mask = em.Empty_Mangle()
+    else:
+        star_mask = pym.Mangle(config['fn_mask_star_pol'])
+
+    f = open(config['fn_mask_bleed_pol'], 'r')
+    line = f.readline()
+    if line.startswith('0 polygons'):
+        bleed_mask = em.Empty_Mangle()
+    else:
+        bleed_mask = pym.Mangle(config['fn_mask_bleed_pol'])
 
     ##### Check whether object are in the tolys:  since this is in a routine that will be call 5 times, it will be re-checked 5 times whereas once suffice ...
     tol = toly_mask.polyid(ra, dec)

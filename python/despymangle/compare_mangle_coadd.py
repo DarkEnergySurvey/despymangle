@@ -9,13 +9,7 @@ import pylab
 
 from despyastro import wcsutil
 import fitsio
-
-class Empty_Mangle(object):
-    def __init__(self):
-        pass
-
-    def weight(self, ra, dec):
-        return 0.0
+import despymangle.EmptyMangle as em
 
 def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
               limitx=np.arange(0, 10000, 10),
@@ -24,21 +18,21 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
     f = open(fn_mg, 'r')
     line = f.readline()
     if line.startswith('0 polygons'):
-        mg = Empty_Mangle()
+        mg = em.Empty_Mangle()
     else:
         mg = pym.Mangle(fn_mg)
 
     f = open(fn_star, 'r')
     line = f.readline()
     if line.startswith('0 polygons'):
-        star = Empty_Mangle()
+        star = em.Empty_Mangle()
     else:
         star = pym.Mangle(fn_star)
 
     f = open(fn_bleed, 'r')
     line = f.readline()
     if line.startswith('0 polygons'):
-        bleed = Empty_Mangle()
+        bleed = em.Empty_Mangle()
     else:
         bleed = pym.Mangle(fn_bleed)
 
