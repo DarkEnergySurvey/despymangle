@@ -5,6 +5,7 @@ import ast
 import os
 import sys
 import re
+import collections
 
 import numpy as np
 import numpy.lib.recfunctions as rfn
@@ -279,11 +280,10 @@ def get_redimg_info(inlist, pfwidtemp, bandnum, dbi, schema):
         and query DB for more """
 
     # get information from input file
-    listinfo = {}
+    listinfo = collections.OrderedDict()
     filenames = []    # ensure preserve order
     with open(inlist, 'r') as infh:
         for line in infh:
-            #print line
             (fullname, mag_zero) = line.split(',')
             filename = miscutils.parse_fullname(fullname, miscutils.CU_PARSE_FILENAME)
             filenames.append(filename)

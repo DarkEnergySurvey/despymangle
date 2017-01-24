@@ -58,7 +58,7 @@ def get_redimg_info(dbi, schema='', redfiles=None):
         load_gtt_filename(dbi, redfiles)
     sql = """select i.*, pq.fwhm_mean*0.263 as FWHM from image i, opm_filename_gtt g,miscfile m, 
              psf_qa pq where i.filename=g.filename and m.pfw_attempt_id=i.pfw_attempt_id and
-             m.ccdnum=i.ccdnum and m.filename=pq.filename and m.filetype='xml_psfex' """
+             m.ccdnum=i.ccdnum and m.filename=pq.filename and m.filetype='xml_psfex' order by i.filename"""
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)
