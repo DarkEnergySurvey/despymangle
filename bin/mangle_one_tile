@@ -6,6 +6,8 @@ import os
 import sys
 import re
 import collections
+import shutil
+import time
 
 import numpy as np
 import numpy.lib.recfunctions as rfn
@@ -21,6 +23,7 @@ import despymangle.make_starmask as sm
 import despymangle.mangle_db as mdb
 import despymangle.compare_mangle_coadd as nc
 import despymangle.make_db_import_files as dbif
+import filemgmt.disk_utils_local as dul
 
 ###################################################################
 def parse_args(argv):
@@ -62,6 +65,7 @@ def parse_args(argv):
 
     parser.add_argument('--list_redimg', action='store', required=True)
     parser.add_argument('--list_nwgint', action='store', required=True)
+    parser.add_argument('--hdr_from_db', action='store_true', default=False, required=False, help='If True then get header information from the DB rather than from files (nwgint and redimg)')
     parser.add_argument('--coadd', action='store', dest='fn_coadd', required=True)
     parser.add_argument('--coadd_cat', action='store', dest='fn_coadd_cat', required=False)
     parser.add_argument('--poltiles', action='store', help='Automatically set if wget_pols')
@@ -103,115 +107,156 @@ def parse_args(argv):
 
     return args
 
+###################################################################
+def read_param_file(parfile):
+    """ read the given parameter file """
+    config = {}
+    with open(parfile, 'r') as paramfh:
+        line = paramfh.readline()
+        while line:
+            line = line.strip()
+
+            # handle line continuation
+            while line.endswith('\\'):
+                line = line[:-1] + paramfh.readline().strip()
+
+            # delete comments
+            line = line.split('#')[0]
+
+            # skip comment line or empty line
+            if re.search(r"\S", line) and line:
+                pat_key_val = r"^\s*(\S+)\s*=\s*(.+)\s*$"
+                pat_match = re.search(pat_key_val, line)
+                if pat_match is not None:
+                    config[pat_match.group(1).lower()] = pat_match.group(2)
+
+            line = paramfh.readline()
+
+    return config
 
 ###################################################################
 def mangle_setup(args):
     """ Perform setup steps such as reading param file """
     config = {}
+    
+    # number of tries for setting up the parameters
+    # defaults to 1 for all command line arguments
+    numtry = 1
 
-    # if paramfile specified, read config
+    # if paramfile specified make sure it exists
     if args['paramfile'] is not None:
-        with open(args['paramfile'], 'r') as paramfh:
-            line = paramfh.readline()
-            while line:
-                line = line.strip()
+        if os.path.isfile(args['paramfile']):
+            # allow three tries for setting the parameters
+            numtry = 3
+        else:
+            raise Exception("Error reading paramfile %s, file does not exist." % (args['paramfile']))
+    # set the parameters
+    for i in range(numtry):
+        try:
+            # if a paramfile is given then use it for initial values
+            if args['paramfile'] is not None:
+                config = read_param_file(args['paramfile'])
 
-                # handle line continuation
-                while line.endswith('\\'):
-                    line = line[:-1] + paramfh.readline().strip()
+            # add/override with command line args
+            for k,v in args.items():
+                if v is not None or k not in config:
+                    config[k] = v
 
-                # delete comments
-                line = line.split('#')[0]
+            # check for required config values
+            for k in ['scheme', 'res']:
+                if k not in config:
+                    raise KeyError('Missing %s key in params file' % k)
 
-                # skip comment line or empty line
-                if re.search(r"\S", line) and line:
-                    pat_key_val = r"^\s*(\S+)\s*=\s*(.+)\s*$"
-                    pat_match = re.search(pat_key_val, line)
-                    if pat_match is not None:
-                        config[pat_match.group(1).lower()] = pat_match.group(2)
+            # convert band_dic (str) to actual dictionary
+            config['band_dic'] = ast.literal_eval(config['band_dic'])
+            config['bandnum'] = config['band_dic'][config['band']]
 
-                line = paramfh.readline()
+            # convert str to int
+            for k in ['res']:
+                config[k] = int(config[k])
 
-    # add/override with command line args
-    for k,v in args.items():
-        if v is not None or k not in config:
-            config[k] = v
+            # convert str to float
+            for k in ['aper', 'asperpix', 'starscale', 'mzpglobal']:
+                config[k] = float(config[k])
 
-    # check for required config values
-    for k in ['scheme', 'res']:
-        if k not in config:
-            raise KeyError('Missing %s key in params file' % k)
+            # create commonly used config values that are composites
+            # of other config values
+            config['pix'] = '-P%s0,%d' % (config['scheme'], config['res'])
+            config['restag'] = ' _%d%s' % (config['res'], config['scheme'])
 
-    # convert band_dic (str) to actual dictionary
-    config['band_dic'] = ast.literal_eval(config['band_dic'])
-    config['bandnum'] = config['band_dic'][config['band']]
+            outdir = ''
+            if config['outputdir'] is not None:
+                if not config['outputdir'].endswith('/'):
+                    config['outputdir'] += '/'
+                miscutils.coremakedirs(config['outputdir'])
+                outdir = config['outputdir']
 
-    # convert str to int
-    for k in ['res']:
-        config[k] = int(config[k])
-
-    # convert str to float
-    for k in ['aper', 'asperpix', 'starscale', 'mzpglobal']:
-        config[k] = float(config[k])
-
-    # create commonly used config values that are composites
-    # of other config values
-    config['pix'] = '-P%s0,%d' % (config['scheme'], config['res'])
-    config['restag'] = ' _%d%s' % (config['res'], config['scheme'])
-
-    outdir = ''
-    if config['outputdir'] is not None:
-        if not config['outputdir'].endswith('/'):
-            config['outputdir'] += '/'
-        miscutils.coremakedirs(config['outputdir'])
-        outdir = config['outputdir']
-
-        if config['molysprefix'] is None:
-            config['molysprefix'] = outdir + '/' + config['runn'] + '_ ' + config['band'] + '_molys'
-        if config['polprefix'] is None:
-            config['polprefix'] = outdir + '/' + config['runn'] + '_' + config['band']
+                if config['molysprefix'] is None:
+                    config['molysprefix'] = outdir + '/' + config['runn'] + '_ ' + config['band'] + '_molys'
+                if config['polprefix'] is None:
+                    config['polprefix'] = outdir + '/' + config['runn'] + '_' + config['band']
         
-    # make any directories needed for output files
-    mdir = os.path.dirname(config['molysprefix'])
-    miscutils.coremakedirs(mdir)
-    mdir = os.path.dirname(config['polprefix'])
-    miscutils.coremakedirs(mdir)
-    if config['pltprefix'] is not None:
-        mdir = os.path.dirname(config['pltprefix'])
-        miscutils.coremakedirs(mdir)
-    if config['dbprefix'] is not None:
-        mdir = os.path.dirname(config['dbprefix'])
-        miscutils.coremakedirs(mdir)
+            # make any directories needed for output files
+            mdir = os.path.dirname(config['molysprefix'])
+            miscutils.coremakedirs(mdir)
+            mdir = os.path.dirname(config['polprefix'])
+            miscutils.coremakedirs(mdir)
+            if config['pltprefix'] is not None:
+                mdir = os.path.dirname(config['pltprefix'])
+                miscutils.coremakedirs(mdir)
+            if config['dbprefix'] is not None:
+                mdir = os.path.dirname(config['dbprefix'])
+                miscutils.coremakedirs(mdir)
 
-    # create default filenames if not provided on command line
-    if config['fn_ccdgon_pol'] is None: # for ccdmolys
-        config['fn_ccdgon_pol'] = config['polprefix'] + '_ccdgons_weight.pol'
-    if config['fn_mask_pol'] is None:  # for ccdmolys
-        config['fn_mask_pol'] = config['polprefix']  + '_ccdmolys_weight.pol'
-    if config['fn_mask_star_pol'] is None:
-        config['fn_mask_star_pol'] = config['polprefix']  + '_starmask.pol'
-    if config['fn_mask_bleed_pol'] is None:
-        config['fn_mask_bleed_pol'] = config['polprefix']  + '_bleedmask.pol'
-    if config['fn_molys_weight_pol'] is None:
-        config['fn_molys_weight_pol'] = config['polprefix'] +'_molys_weight.pol'
-    if config['fn_maglims_pol'] is None:
-        config['fn_maglims_pol'] = config['polprefix'] +'_maglims.pol'
+            # create default filenames if not provided on command line
+            if config['fn_ccdgon_pol'] is None: # for ccdmolys
+                config['fn_ccdgon_pol'] = config['polprefix'] + '_ccdgons_weight.pol'
+            if config['fn_mask_pol'] is None:  # for ccdmolys
+                config['fn_mask_pol'] = config['polprefix']  + '_ccdmolys_weight.pol'
+            if config['fn_mask_star_pol'] is None:
+                config['fn_mask_star_pol'] = config['polprefix']  + '_starmask.pol'
+            if config['fn_mask_bleed_pol'] is None:
+                config['fn_mask_bleed_pol'] = config['polprefix']  + '_bleedmask.pol'
+            if config['fn_molys_weight_pol'] is None:
+                config['fn_molys_weight_pol'] = config['polprefix'] +'_molys_weight.pol'
+            if config['fn_maglims_pol'] is None:
+                config['fn_maglims_pol'] = config['polprefix'] +'_maglims.pol'
 
 
-    if config['logdir'] is not None:
-        miscutils.coremakedirs(config['logdir'])
+            if config['logdir'] is not None:
+                miscutils.coremakedirs(config['logdir'])
 
-    if config['schema'] is None:
-        config['schema'] = ''
-    elif not config['schema'].endswith('.'):
-        config['schema'] += '.'
+            if config['schema'] is None:
+                config['schema'] = ''
+            elif not config['schema'].endswith('.'):
+                config['schema'] += '.'
 
-    if config['ra_column'] is None:
-        config['ra_column'] = 'ALPHAWIN_J2000'
+            if config['ra_column'] is None:
+                config['ra_column'] = 'ALPHAWIN_J2000'
 
-    if config['dec_column'] is None:
-        config['dec_column'] = 'DELTAWIN_J2000'
-
+            if config['dec_column'] is None:
+                config['dec_column'] = 'DELTAWIN_J2000'
+            break
+        except:
+            # if this is the last try then report the error
+            if i == (numtry - 1):
+                msg = sys.exc_info()[1]
+                if args['paramfile'] is not None:
+                    # get the md5sum
+                    md5 = dul.get_md5sum_file(args['paramfile'])
+                    # copy the paramfile so it is picked up in the junk tar
+                    badfname = "bad_param_file_%s_%s.param" % (args['tilename'], args['band'])
+                    shutil.copy(args['paramfile'], badfname)
+                    print "Error reading paramfile %s: %s, this may be caused by a corrupt file. md5sum: %s  a copy of this file should be in the junk tar as %s" % (args['paramfile'], msg, md5, badfname)
+                    raise
+                else:
+                    print "Error setting parameters: %s" % (msg)
+                    raise
+            else:
+                # if there are more attempts then indicate the retry
+                print "Warning: issue setting parameters. Try %i/%i" % (i+1, numtry)
+                # sleep to see if the error will clear
+                time.sleep(3)
     return config
 
 
@@ -327,7 +372,7 @@ def run_mangle_workflow(config):
     nwgint_tab = get_nwgint_info(config['list_nwgint'], dbi, config['schema'])
     Image_tab = get_redimg_info(config['list_redimg'], config['pfw_attempt_id'], 
                                 config['bandnum'], dbi, config['schema'])
-
+    ######HERE
     if config['imgcsv'] is not None:
         # can't use numpy's to_csv because top level is dict instead of record
         with open(config['imgcsv'], 'w') as csvfh:
