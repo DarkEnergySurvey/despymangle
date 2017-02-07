@@ -5,7 +5,22 @@
 import despyastro
 from despymisc import miscutils
 import despydb
+import numpy
 
+###################################################################
+def query2rec(query,dbhandle,verb=False):
+    """
+    Queries DB and returns results as a numpy recarray.
+    """ 
+    # Get the cursor from the DB handle
+    cur = dbhandle.cursor()
+    # Execute
+    cur.execute(query)
+    tuples = cur.fetchall()
+
+    # Return rec array                                                                                                                                          
+    names  = [d[0] for d in cur.description]
+    return numpy.rec.array(tuples,names=names)
 
 ###################################################################
 def load_gtt_filename(dbi, redfiles):
@@ -83,7 +98,7 @@ def get_streak_info(dbi, schema='', redfiles=None):
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)
 
-    streak_tab = despyastro.query2rec(sql, dbhandle=dbi)
+    streak_tab = query2rec(sql, dbhandle=dbi)
     return streak_tab
 
 
@@ -103,7 +118,7 @@ def get_satstar_info(dbi, schema='', redfiles=None, max_radius=400.0):
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)
 
-    satstar_tab = despyastro.query2rec(sql, dbhandle=dbi)
+    satstar_tab = query2rec(sql, dbhandle=dbi)
     return satstar_tab
 
 
@@ -123,7 +138,7 @@ def get_bleedtrail_info(dbi, schema='', redfiles=None):
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)
 
-    bleedtrail_tab = despyastro.query2rec(sql, dbhandle=dbi)
+    bleedtrail_tab = query2rec(sql, dbhandle=dbi)
     return bleedtrail_tab
 
 ###################################################################
@@ -223,7 +238,7 @@ def get_coadd_object_info(dbi, tilename, pfw_attempt_id,
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
         miscutils.fwdebug_print("sql = %s" % sql)
 
-    coadd_object_tab = despyastro.query2rec(sql, dbhandle=dbi)
+    coadd_object_tab = query2rec(sql, dbhandle=dbi)
     return coadd_object_tab
 
 
