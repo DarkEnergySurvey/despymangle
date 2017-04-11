@@ -82,8 +82,15 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
             if h == False:
                 raise KeyError("Could not find matching nwgint for image %s" % Image_tab['FILENAME'][i])
 
-            fits_file = nwgint_tab['FULLNAME'][h[0][0]]
-            hdr = fitsio.read_header(fits_file)
+            # if the file headers are being read
+            if not config['hdr_from_db']:
+                fits_file = nwgint_tab['FULLNAME'][h[0][0]]
+                hdr = fitsio.read_header(fits_file)
+            # if the DB is being querried
+            else:
+                hdr = fitsio.FITSHDR()
+                for key in nwgint_tab.keys():
+                    hdr[key] = nwgint_tab[key][h[0][0]]
         else:
             raise KeyError('Missing FULLNAME in nwgint_tab')
             #hdr = create_head_from_db_info(nwgint_tab, i)

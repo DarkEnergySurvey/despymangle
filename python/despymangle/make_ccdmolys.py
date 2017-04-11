@@ -32,7 +32,7 @@ def ccdmolys(config):
 
     # get rid of polygons with areas less than 5e-14 str or greater than 6 str
     jfn_mask = 'jmask_%s_%s' % (tileid, band)
-    numscheme = '%s%s000000' % (pfwidtemp, config['bandnum'])
+    numscheme = '%s%s00000000' % (pfwidtemp, config['bandnum'])
     cmd = 'poly2poly -vn%s -k5e-14,6 %s %s' % (numscheme, jfn_u, jfn_mask)
     mu.runcmd(cmd, manglebindir, log)
 

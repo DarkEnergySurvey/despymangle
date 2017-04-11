@@ -39,7 +39,8 @@ def parse_args(argv):
     parser.add_argument('--band', action='store', required=True)
     parser.add_argument('--pfw_attempt_id', action='store', required=False,
                         help='id for pfw_attempt for current multiepoch attempt')
-
+    parser.add_argument('--orig_pfw_id', action='store', required=False,
+                        help='id for original attempt for re-runs')
 
     parser.add_argument('--mrelease', action='store', dest='release', required=False)
     parser.add_argument('--mproject', action='store', dest='project', required=False)
@@ -63,21 +64,31 @@ def parse_args(argv):
     parser.add_argument('--dec_column', action='store', required=False)
     parser.add_argument('--max_radius', type=float, default=400.0, action='store', required=False)
 
-    parser.add_argument('--list_redimg', action='store', required=True)
-    parser.add_argument('--list_nwgint', action='store', required=True)
-    parser.add_argument('--hdr_from_db', action='store_true', default=False, required=False, help='If True then get header information from the DB rather than from files (nwgint and redimg)')
-    parser.add_argument('--coadd', action='store', dest='fn_coadd', required=True)
+    parser.add_argument('--list_redimg', action='store', required=False)
+    parser.add_argument('--zsource', action='store', required=True)
+    parser.add_argument('--zversion',action='store', required=True)
+    parser.add_argument('--zflag',action='store', required=False)
+    parser.add_argument('--z2source', action='store', required=False)
+    parser.add_argument('--z2version',action='store', required=False)
+    parser.add_argument('--z2flag',action='store', required=False)
+    parser.add_argument('--zeropoint_table', action='store', default='zeropoint', required=False)
+    parser.add_argument('--fgcm_gry_tbl', action='store', default='Y3A1_FGCM_ALL_V2_5', required=True)
+    parser.add_argument('--z2pt', action='store', default='zeropoint', required=False)
+    parser.add_argument('--im_to_tile', action='store', required=False)
+    parser.add_argument('--list_nwgint', action='store', required=False)
+    parser.add_argument('--hdr_from_db', action='store', default=False, type=bool, required=False, help='If True then get header information from the DB rather than from files (nwgint and redimg)')
+    parser.add_argument('--coadd', action='store', dest='fn_coadd', required=False)
     parser.add_argument('--coadd_cat', action='store', dest='fn_coadd_cat', required=False)
     parser.add_argument('--poltiles', action='store', help='Automatically set if wget_pols')
     parser.add_argument('--poltolys', action='store', help='Automatically set if wget_pols')
     parser.add_argument('--paramfile', action='store', required=False,
                         help='file storing standard parameters')
 
+    parser.add_argument('--data_file', action='store')
     parser.add_argument('--molysprefix', action='store')
     parser.add_argument('--polprefix', action='store')
     parser.add_argument('--dbprefix', action='store', help='prefix for db csv files, _<tablename>.csv appended')
     parser.add_argument('--pltprefix', action='store', help='prefix for plots')
-
     parser.add_argument('--runn', action='store', help='Unique string for processing attempt')
     parser.add_argument('--outputdir', action='store', required=False)
 
@@ -107,6 +118,7 @@ def parse_args(argv):
 
     return args
 
+
 ###################################################################
 def read_param_file(parfile):
     """ read the given parameter file """
@@ -134,11 +146,12 @@ def read_param_file(parfile):
 
     return config
 
+
 ###################################################################
 def mangle_setup(args):
     """ Perform setup steps such as reading param file """
     config = {}
-    
+
     # number of tries for setting up the parameters
     # defaults to 1 for all command line arguments
     numtry = 1
@@ -195,7 +208,7 @@ def mangle_setup(args):
                     config['molysprefix'] = outdir + '/' + config['runn'] + '_ ' + config['band'] + '_molys'
                 if config['polprefix'] is None:
                     config['polprefix'] = outdir + '/' + config['runn'] + '_' + config['band']
-        
+
             # make any directories needed for output files
             mdir = os.path.dirname(config['molysprefix'])
             miscutils.coremakedirs(mdir)
@@ -290,20 +303,25 @@ def wget_pol_files(config):
 
 
 ###################################################################
-def get_nwgint_info(inlist, dbi, schema):
+def get_nwgint_info(inlist, dbi, schema, band=None, pfwid=None, coadd_file=None):
     """ Read information from input list file
         and query DB for more """
 
-    # get information from input file
-    listinfo = {}
-    filenames = []    # ensure preserve order
-    with open(inlist, 'r') as infh:
-        for line in infh:
-            #print line
-            fullname = line.strip()
-            filename = miscutils.parse_fullname(fullname, miscutils.CU_PARSE_FILENAME)
-            filenames.append(filename)
-            listinfo[filename] = {'fullname': fullname}
+
+    if inlist is None:
+        # get information from the DB
+        listinfo, filenames = mdb.get_nwgint_files(dbi, band, pfwid, coadd_file)
+    else:
+        # get information from input file
+        listinfo = {}
+        filenames = []    # ensure preserve order
+
+        with open(inlist, 'r') as infh:
+            for line in infh:
+                fullname = line.strip()
+                filename = miscutils.parse_fullname(fullname, miscutils.CU_PARSE_FILENAME)
+                filenames.append(filename)
+                listinfo[filename] = {'fullname': fullname}
         
     # get nwgint info from DB
     nwgint_tab = mdb.get_nwgint_info(dbi, schema, filenames)
@@ -320,20 +338,33 @@ def get_nwgint_info(inlist, dbi, schema):
 
 
 ###################################################################
-def get_redimg_info(inlist, pfwidtemp, bandnum, dbi, schema):
+def get_redimg_info(inlist, pfwidtemp, bandnum, dbi, schema, table, zsource, zversion, zflag, nwgtab, im_to_tile, tilename, coadd_file=None, z2source=None, z2version=None, z2flag=None, z2pt=None, gry_tbl=None):
     """ Read information from input list file
         and query DB for more """
 
-    # get information from input file
-    listinfo = collections.OrderedDict()
-    filenames = []    # ensure preserve order
-    with open(inlist, 'r') as infh:
-        for line in infh:
-            (fullname, mag_zero) = line.split(',')
-            filename = miscutils.parse_fullname(fullname, miscutils.CU_PARSE_FILENAME)
-            filenames.append(filename)
-            listinfo[filename] = {'fullname': fullname,
-                                  'mag_zero': float(mag_zero)}
+    if inlist is None:
+        # get information from the DB
+        listinfo, filenames = mdb.get_redimg_files(dbi, nwgtab, table, zsource, zversion, zflag, im_to_tile, tilename, coadd_file, z2source, z2version, z2flag, z2pt, gry_tbl)
+    else:
+        # get information from input file
+        listinfo = collections.OrderedDict()
+        filenames = []    # ensure preserve order
+        with open(inlist, 'r') as infh:
+            for line in infh:
+                temp = line.split(',')
+                #if len(temp) == 2:
+                (fullname, mag_zero) = line.split(',')
+                filename = miscutils.parse_fullname(fullname, miscutils.CU_PARSE_FILENAME)
+                (mag_zero, sigma_mag_zero, fgcm_gry) = mdb.get_mag_zero(dbi, filename, table, zsource,
+                                                                            zversion, z2source, z2version, z2pt, gry_tbl)
+                #else:
+                #    (fullname, mag_zero, sigma_mag_zero) = line.split(',')
+                #    filename = miscutils.parse_fullname(fullname, miscutils.CU_PARSE_FILENAME)
+                filenames.append(filename)
+                listinfo[filename] = {'fullname': fullname,
+                                      'mag_zero': float(mag_zero),
+                                      'sigma_mag_zero': float(sigma_mag_zero),
+                                      'fgcm_gry': float(fgcm_gry)}
         
     # get nwgint info from DB
     Image_tab = mdb.get_redimg_info(dbi, schema, filenames)
@@ -343,21 +374,24 @@ def get_redimg_info(inlist, pfwidtemp, bandnum, dbi, schema):
     #      (several digits smaller than the file id used in the DB)
     mag_zero = []
     fullname = []
+    sigma_mag_zero = []
     mangle_img_id = []
+    fgcm_gry = []
     for i in range(len(Image_tab['FILENAME'])):
         listfile = listinfo[Image_tab['FILENAME'][i]]
         mag_zero.append(listfile['mag_zero'])
+        sigma_mag_zero.append(listfile['sigma_mag_zero'])
+        fgcm_gry.append(listfile['fgcm_gry'])
         fullname.append(listfile['fullname'])
-        mangle_img_id.append(int('%s%s%05d' % (pfwidtemp, bandnum, i)))
-
+        mangle_img_id.append(int('%s%s%08d' % (pfwidtemp, bandnum, i)))
     Image_tab['MAG_ZERO'] = np.array(mag_zero)
     Image_tab['FULLNAME'] = np.array(fullname)
+    Image_tab['SIGMA_MAG_ZERO'] = np.array(sigma_mag_zero)
+    Image_tab['FGCM_GRY'] = np.array(fgcm_gry)
     Image_tab['MANGLE_IMG_ID'] = np.array(mangle_img_id)
-
+    
 
     return Image_tab
-
-
 
 ###################################################################
 def run_mangle_workflow(config):
@@ -368,11 +402,26 @@ def run_mangle_workflow(config):
     #A ebi.extract_band_info(CCDs_filename, band,tilename,outputdir, logdir)
     print '########## Getting image info1'
     dbi = desdbi.DesDbi(config['des_services'], config['db_section'], True)
-
-    nwgint_tab = get_nwgint_info(config['list_nwgint'], dbi, config['schema'])
+    
+    if config['orig_pfw_id'] is None:
+        if config['fn_coadd'] is not None:
+            config['orig_pfw_id'] = mdb.get_pfwid_from_coadd(dbi, config['fn_coadd'])
+        else:
+            config['orig_pfw_id'] = config['pfw_attempt_id']
+    elif config['fn_coadd'] is None:
+        config['fn_coadd'] = mdb.get_coadd_from_pfwid(dbi, config['orig_pfw_id'], config['band'])
+        
+    nwgint_tab = get_nwgint_info(config['list_nwgint'], dbi, config['schema'],
+                                 config['band'], config['orig_pfw_id'], config['fn_coadd'])
+    if config['list_nwgint'] is None:
+        config['hdr_from_db'] = True
     Image_tab = get_redimg_info(config['list_redimg'], config['pfw_attempt_id'], 
-                                config['bandnum'], dbi, config['schema'])
-    ######HERE
+                                config['bandnum'], dbi, config['schema'],
+                                config['zeropoint_table'], config['zsource'],
+                                config['zversion'], config['zflag'], nwgint_tab, config['im_to_tile'],
+                                config['tilename'], config['fn_coadd'], config['z2source'],
+                                config['z2version'], config['z2flag'], config['z2pt'], config['fgcm_gry_tbl'])
+
     if config['imgcsv'] is not None:
         # can't use numpy's to_csv because top level is dict instead of record
         with open(config['imgcsv'], 'w') as csvfh:
@@ -388,11 +437,6 @@ def run_mangle_workflow(config):
                 csvfh.write(','.join(linearr) + '\n')
                      
 
-    # set up gtt with red filenames for future queries
-    #mdb.load_gtt_red_from_nwgint(dbi, nwgint_tab['FILENAME'])
-    # query the DB to get information about the images
-    #Image_tab = mdb.get_redimg_info(dbi)
-
     # Add optional skyvar plotting?
 
     print '\n########## Launching make_ccdgons'
@@ -403,7 +447,7 @@ def run_mangle_workflow(config):
     print 'Done'
 
     print '\n########## Launching weightmolys'
-    wm.weightmolys(config, Image_tab)
+    nmoly = wm.weightmolys(config, Image_tab)
     print 'Done'
 
     print '\n########## Launching make_starmask'
@@ -432,7 +476,7 @@ def run_mangle_workflow(config):
 
     if config['dbprefix'] is not None:
         print '\n########## Creating csv files for database ingestion'
-        dbif.make_csv_files(config, Image_tab, dbi)
+        dbif.make_csv_files(config, Image_tab, dbi, nmoly)
         print 'Done'
 
     print 'Finished mangle'
@@ -443,6 +487,10 @@ def main(argv):
     """ Entry point """
     args = parse_args(argv)
     config = mangle_setup(args)
+    if config['list_redimg'] is None and (config['zsource'] is None or config['zversion'] is None or config['im_to_tile'] is None):
+        raise Exception("If list_redimg is not given then both zsource and zversion must be given.")
+    if config['orig_pfw_id'] is None and config['fn_coadd'] is None:
+        raise Exception("Either orig_pfw_id or coadd must be specified.")
     run_mangle_workflow(config)
 
 

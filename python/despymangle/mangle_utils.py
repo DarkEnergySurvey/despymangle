@@ -392,8 +392,7 @@ def create_weighted_poly_from_vertice(ra1, dec1, ra2, dec2, ra3, dec3, ra4,dec4,
     os.system(' rm  jpol1 jpol jw')
     
 def create_weighted_poly_from_edges16(ra1, dec1, ra2, dec2, ra3, dec3, ra4,dec4,ra5, dec5, ra6, dec6, ra7, dec7, ra8,dec8, id, w, polyname):
-    
-    
+
     g=open('jpol', 'w')
     #    aa=c2e(ra1, dec1, ra2, dec2, ra3, dec3, ra4,dec4)
     s= "%.9f "*16
@@ -407,7 +406,7 @@ def create_weighted_poly_from_edges16(ra1, dec1, ra2, dec2, ra3, dec3, ra4,dec4,
     os.system(' echo %f >> jw'%w)
     os.system(' weight  -q  -zjw jpol1 %s'%polyname)
     os.system(' rm jpol jpol1 jw')
-    
+
 
 
 def get_tilename(runid):

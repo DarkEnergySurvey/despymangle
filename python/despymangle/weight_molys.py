@@ -1,6 +1,7 @@
 import numpy as np
 import os
 from shutil import copyfile
+import fitsio
 
 import despymangle.mangle_utils as mu
 
@@ -37,41 +38,6 @@ def id2indices(Image_tab, ids):
     return indices
 
 ######################################################################
-def make_syste_masks(keyword, config, Nmolys, fn_reduced, Image_tab, fnprefix):
-    # 6 as we want sum, min, max, median, mean and weightavg
-    tab_exptime = np.zeros((6, Nmolys))
-    f = open(fn_reduced)
-    for i in range(Nmolys):   # for each molygon
-        line = f.readline().strip()
-        #ids = np.int32(np.array(line.split()[2:]))
-        ids = line.split()[2:]    ### this all the ids of the ccdgons.
-        indices = id2indices(Image_tab, ids)  ## indices is the indices in image_Tab which corresponds to the ccdgons
-        skyvars= id2skyvar(Image_tab, ids)
-
-        tab_exptime[0, i] = np.sum(Image_tab[keyword][indices])
-        tab_exptime[1, i] = np.min(Image_tab[keyword][indices])
-        tab_exptime[2, i] = np.max(Image_tab[keyword][indices])
-        tab_exptime[3, i] = np.median(Image_tab[keyword][indices])
-        tab_exptime[4, i] = np.mean(Image_tab[keyword][indices])
-
-        weights = skyvars * 100 **   ((config['mzpglobal']-Image_tab['MAG_ZERO'][indices])/2.5)
-        weights = 1.0 /weights 
-        tab_exptime[5, i] = np.sum(Image_tab[keyword][indices] * weights)/np.sum(weights)
-
-    f.close()
-    fnprefix += '_' + keyword
-
-    # save filenames for other parts of mangle
-    suffix = ['SUM', 'MIN', 'MAX', 'MEDIAN', 'MEAN', 'WMEAN']
-    idx = 0
-    for suf in suffix: 
-        fkey = 'fn_%s_%s' % (keyword.lower(), suf.lower()) 
-        config[fkey] = fnprefix + '.' + suf
-        np.savetxt(config[fkey], tab_exptime[idx, :])
-        idx += 1
-
-
-######################################################################
 def weightmolys(config, Image_tab):
     ###### stuff from weight files
     ###  In the new mangle pipeline, this can be done before starmask!!
@@ -101,13 +67,14 @@ def weightmolys(config, Image_tab):
             outdir += '/'
     fnprefix = outdir + config['molysprefix']
 
-    for suffix in ['red', 'count', 'weight', 'maglims', 'time', 'area']:
+    for suffix in ['red', 'count', 'weight', 'maglims', 'time', 'area', 'sigma_magzero']:
         config['fn_molys_%s' % suffix] = fnprefix + '.' + suffix
 
     fn_reduced = config['fn_molys_red']
     fn_count = config['fn_molys_count']
     fn_weight = config['fn_molys_weight']
     fn_maglims = config['fn_molys_maglims']
+    fn_sigma_magzero = config['fn_molys_sigma_magzero']
     fn_time = config['fn_molys_time']
     fn_area = config['fn_molys_area']
 
@@ -218,14 +185,6 @@ def weightmolys(config, Image_tab):
     mu.runcmd(cmd, manglebindir, log)
     copyfile(jfn_jmaglimmask, fn_maglimmask)
 
-    make_syste_masks('EXPTIME', config, Nmolys, fn_reduced, Image_tab, fnprefix)
-    make_syste_masks('AIRMASS', config, Nmolys, fn_reduced, Image_tab, fnprefix)
-    make_syste_masks('SKYBRITE', config, Nmolys, fn_reduced, Image_tab, fnprefix)
-    make_syste_masks('SKYSIGMA', config, Nmolys, fn_reduced, Image_tab, fnprefix)
-    make_syste_masks('FWHM', config, Nmolys, fn_reduced, Image_tab, fnprefix)
-    #make_syste_masks('SKYVARA', config, Nmolys, fn_reduced, Image_tab, fnprefix)
-    #make_syste_masks('SKYVARB', config, Nmolys, fn_reduced, Image_tab, fnprefix)
-
 
     #write total observation times
 
@@ -257,3 +216,5 @@ def weightmolys(config, Image_tab):
                 os.remove(tempf)
             else:
                 print "WARN: Could not find temporary file to delete (%s)" % tempf
+
+    return Nmolys

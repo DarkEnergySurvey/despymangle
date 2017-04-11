@@ -128,6 +128,14 @@ def starmask(config, Image_tab, dbi):
             print >>fily, satstar_tab['RA'][idx], satstar_tab['DEC'][idx], satstar_tab['RADIUS'][idx]/60./60. * config['starscale']
 
     fily.close()
+    
+    if N_images_with_stars == 0:
+        print "Found no satstars in database."
+        fl = open(fn_mask_star,'w')
+        fl.write('0 polygons\nreal 10\npixelization 10s\nsnapped\n')
+        fl.close()
+
+        return
 
     jfn_star1 = 'jstar1%s.pol' % (band)
     cmd = 'weight %s -ic1 -z%s %s %s' % (mtol, jfn_weightstar, jfn_star, jfn_star1)
@@ -148,6 +156,7 @@ def starmask(config, Image_tab, dbi):
     jfn_star5 = 'jstar5%s.pol' % (band)
     cmd = 'snap %s %s %s %s' % (snap, mtol, jfn_star4, jfn_star5)
     mu.runcmd(cmd, manglebindir, log)
+    
 
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
         for tempf in [jfn_star, jfn_star1, jfn_star2, jfn_star3, jfn_star4]:
