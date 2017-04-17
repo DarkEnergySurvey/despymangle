@@ -179,7 +179,7 @@ def make_csv_coadd_object_molygon(config, fn_csv, coadd_object_tab):
     ## A[0] give the id of the polygon (-1 if no polygon), and A[1] give the associated mag_lim
     A = mangle_mask.polyid_and_weight(ra, dec)
     if miscutils.fwdebug_check(10, "MANGLE_DEBUG"):
-        miscutils.fwdebug_print("A = %s" % (A))
+        miscutils.fwdebug_print("A = %s" % (str(A)))
         miscutils.fwdebug_print("A[1][A[0] < 10] = %s" % (A[1][A[0] < 10]))
 
     star = star_mask.polyid(ra, dec)
