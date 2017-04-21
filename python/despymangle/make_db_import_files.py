@@ -85,9 +85,17 @@ def make_syste_masks(keyword, config, Nmolys, Image_tab, molyids, exclude=None, 
         indices, junk = id2indices(Image_tab, ids)  ## indices is the indices in image_Tab which corresponds to the ccdgons
         # get the specific Image_tabs we need.
         if keyword in Image_tab:
-            temp = Image_tab[keyword][indices]
             if exclude is not None:
-                temp = temp[temp != exclude]
+                tmpind = []
+                tmpid = []
+                
+                for i, val in enumerate(indices):
+                    if Image_tab[keyword][i] != exclude:
+                        tmpind.append(val)
+                        tmpid.append(ids[i])
+                indices = tmpind
+                ids = tmpid
+            temp = Image_tab[keyword][indices]
         else:
             temp = []
         tab_exptime['MOLYGON_NUMBER'][i] = molyids[i]
@@ -415,6 +423,8 @@ def make_csv_files(config, Image_tab, dbi, Nmolys):
                                                     config['dec_column'])
 
 
+    if len(coadd_object_tab) == 0:
+        raise Exception("Could not load data from coadd_object_tab.")
     fndb_pattern  =  config['dbprefix'] + '_%s.csv'
 
     #### maybe implement something to check whether there is a mangle mask in this band ?
