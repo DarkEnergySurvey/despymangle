@@ -338,7 +338,7 @@ def get_satstar_info(dbi, schema='', redfiles=None, max_radius=400.0):
     
     sql = """select i.filename as redfilename, s.*
              from satstar s, catalog c, image i, opm_filename_gtt g where
-             s.filename=c.filename and s.radius<%f and i.filename=g.filename and
+             s.filename=c.filename and s.radius<%f and s.radius>0.1 and i.filename=g.filename and
              i.expnum=c.expnum and i.ccdnum=c.ccdnum and i.pfw_attempt_id=c.pfw_attempt_id
           """ % (max_radius)
 

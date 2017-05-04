@@ -142,7 +142,7 @@ def starmask(config, Image_tab, dbi):
     mu.runcmd(cmd, manglebindir, log)
 
     jfn_star2 = 'jstar2%s.pol' % (band)
-    cmd = 'snap -S %s %s %s %s' % (snap, mtol, jfn_star1, jfn_star2)
+    cmd = 'snap %s %s %s %s' % (snap, mtol, jfn_star1, jfn_star2)
     mu.runcmd(cmd, manglebindir, log)
 
     jfn_star3 = 'jstar3%s.pol' % (band)
@@ -151,12 +151,7 @@ def starmask(config, Image_tab, dbi):
 
     jfn_star4 = 'jstar4%s.pol' % (band)
     cmd = 'pixelize %s %s %s %s' % (pix, mtol, jfn_star3, jfn_star4)
-    mu.runcmd(cmd, manglebindir, log)
-
-    jfn_star5 = 'jstar5%s.pol' % (band)
-    cmd = 'snap %s %s %s %s' % (snap, mtol, jfn_star4, jfn_star5)
-    mu.runcmd(cmd, manglebindir, log)
-    
+    mu.runcmd(cmd, manglebindir, log)    
 
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
         for tempf in [jfn_star, jfn_star1, jfn_star2, jfn_star3, jfn_star4]:
@@ -169,13 +164,13 @@ def starmask(config, Image_tab, dbi):
     ###mu.runcmd(cmd, manglebindir, log)
 
     jfn_rstar = 'jrstar%s.pol' % (band)
-    cmd = 'rasterize -T %s %s %s %s' % (mtol, tilefile, jfn_star5, jfn_rstar)
+    cmd = 'rasterize -T %s %s %s %s' % (mtol, tilefile, jfn_star4, jfn_rstar)
     mu.runcmd(cmd, manglebindir, log)
 
     # save data in final filename and delete intermediate files
     copyfile(jfn_rstar, fn_mask_star)
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
-        for tempf in [jfn_star5, jfn_rstar, jfn_weightstar]:
+        for tempf in [jfn_star4, jfn_rstar, jfn_weightstar]:
             if os.path.exists(tempf):
                 os.remove(tempf)
             else:
