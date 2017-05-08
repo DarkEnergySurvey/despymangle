@@ -154,7 +154,7 @@ def starmask(config, Image_tab, dbi):
     mu.runcmd(cmd, manglebindir, log)    
 
     if 'cleanup' in config and config['cleanup'].upper() == 'Y':
-        for tempf in [jfn_star, jfn_star1, jfn_star2, jfn_star3, jfn_star4]:
+        for tempf in [jfn_star, jfn_star1, jfn_star2, jfn_star3]:
             if os.path.exists(tempf):
                 os.remove(tempf)
             else:
