@@ -78,6 +78,7 @@ def make_syste_masks(keyword, config, Nmolys, Image_tab, molyids, exclude=None, 
     
     f = open(config['fn_molys_red'])
     # for each molygon
+
     for i in range(Nmolys):
         line = f.readline().strip()
 
@@ -89,16 +90,17 @@ def make_syste_masks(keyword, config, Nmolys, Image_tab, molyids, exclude=None, 
                 tmpind = []
                 tmpid = []
                 
-                for i, val in enumerate(indices):
-                    if Image_tab[keyword][i] != exclude:
+                for j, val in enumerate(indices):
+                    if Image_tab[keyword][j] != exclude:
                         tmpind.append(val)
-                        tmpid.append(ids[i])
+                        tmpid.append(ids[j])
                 indices = tmpind
                 ids = tmpid
             temp = Image_tab[keyword][indices]
         else:
             temp = []
         tab_exptime['MOLYGON_NUMBER'][i] = molyids[i]
+
         if len(temp) > 0:
             # quadtrature sum of the values
             if 'QSUM' in keys and temp is not None:
@@ -106,6 +108,9 @@ def make_syste_masks(keyword, config, Nmolys, Image_tab, molyids, exclude=None, 
             # sum of the values
             if 'SUM' in keys and temp is not None:
                 tab_exptime['SUM'][i] = np.sum(temp)
+                #if keyword == 'FGCM_GRY':
+                #    print temp
+                #    print " SUM",tab_exptime['SUM'][i]
             # minimum of the values
             if 'MIN' in keys and temp is not None:
                 tab_exptime['MIN'][i] = np.min(temp)
@@ -133,7 +138,6 @@ def make_syste_masks(keyword, config, Nmolys, Image_tab, molyids, exclude=None, 
             if 'MAX' in keys:
                 tab_exptime['MAX'][i] = np.max(np.sqrt(skyvarsp))
             tab_exptime['UNCERTAINTY'][i] = 1. / np.sqrt(np.sum(1./skyvarsp))
-
 
     f.close()
 
