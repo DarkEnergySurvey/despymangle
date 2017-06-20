@@ -78,8 +78,9 @@ def make_syste_masks(keyword, config, Nmolys, Image_tab, molyids, exclude=None, 
     
     f = open(config['fn_molys_red'])
     # for each molygon
-
+    #print config['fn_molys_red']
     for i in range(Nmolys):
+        #print i
         line = f.readline().strip()
 
         ids = line.split()[2:]    ### this is all the ids of the ccdgons in this molygon
@@ -132,12 +133,13 @@ def make_syste_masks(keyword, config, Nmolys, Image_tab, molyids, exclude=None, 
         # special case of the sky variance
         if 'UNCERTAINTY' in keys:
             skyvars = id2skyvar(Image_tab, ids)
-            skyvarsp = skyvars * 100**((config['mzpglobal']-Image_tab['MAG_ZERO'][indices])/2.5)
-            if 'MIN' in keys:
-                tab_exptime['MIN'][i] = np.min(np.sqrt(skyvarsp))
-            if 'MAX' in keys:
-                tab_exptime['MAX'][i] = np.max(np.sqrt(skyvarsp))
-            tab_exptime['UNCERTAINTY'][i] = 1. / np.sqrt(np.sum(1./skyvarsp))
+            if len(skyvars) > 0:
+                skyvarsp = skyvars * 100**((config['mzpglobal']-Image_tab['MAG_ZERO'][indices])/2.5)
+                if 'MIN' in keys:
+                    tab_exptime['MIN'][i] = np.min(np.sqrt(skyvarsp))
+                if 'MAX' in keys:
+                    tab_exptime['MAX'][i] = np.max(np.sqrt(skyvarsp))
+                tab_exptime['UNCERTAINTY'][i] = 1. / np.sqrt(np.sum(1./skyvarsp))
 
     f.close()
 
