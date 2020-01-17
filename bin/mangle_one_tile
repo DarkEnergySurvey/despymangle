@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 import ast
@@ -10,9 +10,7 @@ import shutil
 import time
 
 import numpy as np
-import numpy.lib.recfunctions as rfn
 
-import despyastro
 import despydb.desdbi as desdbi
 from despymisc import miscutils
 
@@ -66,11 +64,11 @@ def parse_args(argv):
 
     parser.add_argument('--list_redimg', action='store', required=False)
     parser.add_argument('--zsource', action='store', required=True)
-    parser.add_argument('--zversion',action='store', required=True)
-    parser.add_argument('--zflag',action='store', required=False)
+    parser.add_argument('--zversion', action='store', required=True)
+    parser.add_argument('--zflag', action='store', required=False)
     parser.add_argument('--z2source', action='store', required=False)
-    parser.add_argument('--z2version',action='store', required=False)
-    parser.add_argument('--z2flag',action='store', required=False)
+    parser.add_argument('--z2version', action='store', required=False)
+    parser.add_argument('--z2flag', action='store', required=False)
     parser.add_argument('--zeropoint_table', action='store', default='zeropoint', required=False)
     parser.add_argument('--fgcm_gry_tbl', action='store', default='Y3A1_FGCM_ALL_V2_5', required=True)
     parser.add_argument('--z2pt', action='store', default='zeropoint', required=False)
@@ -93,7 +91,7 @@ def parse_args(argv):
     parser.add_argument('--outputdir', action='store', required=False)
 
     parser.add_argument('--cleanup', action='store', required=False,
-                         help='Y/N  whether to delete temporary files')
+                        help='Y/N  whether to delete temporary files')
 
     parser.add_argument('--mask', action='store', dest='fn_mask_pol', help='Output file')
     parser.add_argument('--mask_star', action='store', dest='fn_mask_star_pol', help='Output file')
@@ -162,7 +160,7 @@ def mangle_setup(args):
             # allow three tries for setting the parameters
             numtry = 3
         else:
-            raise Exception("Error reading paramfile %s, file does not exist." % (args['paramfile']))
+            raise Exception(f"Error reading paramfile {args['paramfile']}, file does not exist.")
     # set the parameters
     for i in range(numtry):
         try:
@@ -171,14 +169,14 @@ def mangle_setup(args):
                 config = read_param_file(args['paramfile'])
 
             # add/override with command line args
-            for k,v in args.items():
+            for k, v in args.items():
                 if v is not None or k not in config:
                     config[k] = v
 
             # check for required config values
             for k in ['scheme', 'res']:
                 if k not in config:
-                    raise KeyError('Missing %s key in params file' % k)
+                    raise KeyError(f"Missing {k} key in params file")
 
             # convert band_dic (str) to actual dictionary
             config['band_dic'] = ast.literal_eval(config['band_dic'])
@@ -194,8 +192,8 @@ def mangle_setup(args):
 
             # create commonly used config values that are composites
             # of other config values
-            config['pix'] = '-P%s0,%d' % (config['scheme'], config['res'])
-            config['restag'] = ' _%d%s' % (config['res'], config['scheme'])
+            config['pix'] = f"-P{config['scheme']}0,{config['res']:d}"
+            config['restag'] = f" _{config['res']:d}{config['scheme']}"
 
             outdir = ''
             if config['outputdir'] is not None:
@@ -231,9 +229,9 @@ def mangle_setup(args):
             if config['fn_mask_bleed_pol'] is None:
                 config['fn_mask_bleed_pol'] = config['polprefix']  + '_bleedmask.pol'
             if config['fn_molys_weight_pol'] is None:
-                config['fn_molys_weight_pol'] = config['polprefix'] +'_molys_weight.pol'
+                config['fn_molys_weight_pol'] = config['polprefix'] + '_molys_weight.pol'
             if config['fn_maglims_pol'] is None:
-                config['fn_maglims_pol'] = config['polprefix'] +'_maglims.pol'
+                config['fn_maglims_pol'] = config['polprefix'] + '_maglims.pol'
 
 
             if config['logdir'] is not None:
@@ -258,18 +256,17 @@ def mangle_setup(args):
                     # get the md5sum
                     md5 = dul.get_md5sum_file(args['paramfile'])
                     # copy the paramfile so it is picked up in the junk tar
-                    badfname = "bad_param_file_%s_%s.param" % (args['tilename'], args['band'])
+                    badfname = f"bad_param_file_{args['tilename']}_{args['band']}.param"
                     shutil.copy(args['paramfile'], badfname)
-                    print "Error reading paramfile %s: %s, this may be caused by a corrupt file. md5sum: %s  a copy of this file should be in the junk tar as %s" % (args['paramfile'], msg, md5, badfname)
+                    print(f"Error reading paramfile {args['paramfile']}: {msg}, this may be caused by a corrupt file. md5sum: {md5}  a copy of this file should be in the junk tar as {badfname}")
                     raise
-                else:
-                    print "Error setting parameters: %s" % (msg)
-                    raise
-            else:
-                # if there are more attempts then indicate the retry
-                print "Warning: issue setting parameters. Try %i/%i" % (i+1, numtry)
-                # sleep to see if the error will clear
-                time.sleep(3)
+
+                print(f"Error setting parameters: {msg}")
+                raise
+            # if there are more attempts then indicate the retry
+            print(f"Warning: issue setting parameters. Try {i + 1:d}/{numtry:d}")
+            # sleep to see if the error will clear
+            time.sleep(3)
     return config
 
 
@@ -279,25 +276,15 @@ def wget_pol_files(config):
 
     from despyserviceaccess import serviceaccess
     wgetinfo = serviceaccess.parse(config['des_services'], config['pol_wget_section'])
-    wgetauth = '--user=%s --password=%s' % (wgetinfo['user'], wgetinfo['password'])
+    wgetauth = f"--user={wgetinfo['user']} --password={wgetinfo['password']}"
 
-    pol_base_url = '%s/%s/%s_tiles%s.dpol/' % (wgetinfo['pol_url_root'],
-                                               config['project'],
-                                               config['project'],
-                                               config['restag'])
-    pol_tiles_filename = '%s_tiles%s.%s.pol' % (config['project'],
-                                                config['restag'],
-                                                config['tileid'])
-    os.system('wget %s %s/%s' % (wgetauth, pol_base_url, pol_tiles_filename))
+    pol_base_url = f"{wgetinfo['pol_url_root']}/{config['project']}/{config['project']}_tiles{config['restag']}.dpol/"
+    pol_tiles_filename = f"{config['project']}_tiles{config['restag']}.{config['tileid']}.pol"
+    os.system(f"wget {wgetauth} {pol_base_url}/{pol_tiles_filename}")
 
-    pol_base_url = '%s/%s/%s_tolys%s.dpol/' % (config['pol_url_root'],
-                                               config['project'],
-                                               config['project'],
-                                               config['restag'])
-    pol_tolys_filename = '%s_tolys%s.%s.pol' % (config['project'],
-                                                config['restag'],
-                                                config['tileid'])
-    os.system('wget %s %s/%s' % (wgetauth, pol_base_url, pol_tolys_filename))
+    pol_base_url = f"{config['pol_url_root']}/{config['project']}/{config['project']}_tolys{config['restag']}.dpol/"
+    pol_tolys_filename = f"{config['project']}_tolys{config['restag']}.{config['tileid']}.pol"
+    os.system(f"wget {wgetauth} {pol_base_url}/{pol_tolys_filename}")
 
     return pol_tiles_filename, pol_tolys_filename
 
@@ -322,7 +309,7 @@ def get_nwgint_info(inlist, dbi, schema, band=None, pfwid=None, coadd_file=None)
                 filename = miscutils.parse_fullname(fullname, miscutils.CU_PARSE_FILENAME)
                 filenames.append(filename)
                 listinfo[filename] = {'fullname': fullname}
-        
+
     # get nwgint info from DB
     nwgint_tab = mdb.get_nwgint_info(dbi, schema, filenames)
 
@@ -338,25 +325,29 @@ def get_nwgint_info(inlist, dbi, schema, band=None, pfwid=None, coadd_file=None)
 
 
 ###################################################################
-def get_redimg_info(inlist, pfwidtemp, bandnum, dbi, schema, table, zsource, zversion, zflag, nwgtab, im_to_tile, tilename, coadd_file=None, z2source=None, z2version=None, z2flag=None, z2pt=None, gry_tbl=None):
+def get_redimg_info(inlist, pfwidtemp, bandnum, dbi, schema, table, zsource, zversion, zflag,
+                    nwgtab, im_to_tile, tilename, coadd_file=None, z2source=None,
+                    z2version=None, z2flag=None, z2pt=None, gry_tbl=None):
     """ Read information from input list file
         and query DB for more """
 
     if inlist is None:
         # get information from the DB
-        listinfo, filenames = mdb.get_redimg_files(dbi, nwgtab, table, zsource, zversion, zflag, im_to_tile, tilename, coadd_file, z2source, z2version, z2flag, z2pt, gry_tbl)
+        listinfo, filenames = mdb.get_redimg_files(dbi, nwgtab, table, zsource, zversion, zflag,
+                                                   im_to_tile, tilename, coadd_file, z2source,
+                                                   z2version, z2flag, z2pt, gry_tbl)
     else:
         # get information from input file
         listinfo = collections.OrderedDict()
         filenames = []    # ensure preserve order
         with open(inlist, 'r') as infh:
             for line in infh:
-                temp = line.split(',')
+                #temp = line.split(',')
                 #if len(temp) == 2:
                 (fullname, mag_zero) = line.split(',')
                 filename = miscutils.parse_fullname(fullname, miscutils.CU_PARSE_FILENAME)
                 (mag_zero, sigma_mag_zero, fgcm_gry) = mdb.get_mag_zero(dbi, filename, table, zsource,
-                                                                            zversion, z2source, z2version, z2pt, gry_tbl)
+                                                                        zversion, z2source, z2version, z2pt, gry_tbl)
                 #else:
                 #    (fullname, mag_zero, sigma_mag_zero) = line.split(',')
                 #    filename = miscutils.parse_fullname(fullname, miscutils.CU_PARSE_FILENAME)
@@ -365,7 +356,7 @@ def get_redimg_info(inlist, pfwidtemp, bandnum, dbi, schema, table, zsource, zve
                                       'mag_zero': float(mag_zero),
                                       'sigma_mag_zero': float(sigma_mag_zero),
                                       'fgcm_gry': float(fgcm_gry)}
-        
+
     # get nwgint info from DB
     Image_tab = mdb.get_redimg_info(dbi, schema, filenames)
 
@@ -389,7 +380,7 @@ def get_redimg_info(inlist, pfwidtemp, bandnum, dbi, schema, table, zsource, zve
     Image_tab['SIGMA_MAG_ZERO'] = np.array(sigma_mag_zero)
     Image_tab['FGCM_GRY'] = np.array(fgcm_gry)
     Image_tab['MANGLE_IMG_ID'] = np.array(mangle_img_id)
-    
+
 
     return Image_tab
 
@@ -397,12 +388,12 @@ def get_redimg_info(inlist, pfwidtemp, bandnum, dbi, schema, table, zsource, zve
 def run_mangle_workflow(config):
     """ Controls the order of mangle code executions """
 
-    print 'Mangle for %s, doing tile %s' %(config['release'], config['tilename'])
+    print(f"Mangle for {config['release']}, doing tile {config['tilename']}")
 
     #A ebi.extract_band_info(CCDs_filename, band,tilename,outputdir, logdir)
-    print '########## Getting image info1'
+    print('########## Getting image info1')
     dbi = desdbi.DesDbi(config['des_services'], config['db_section'], True)
-    
+
     if config['orig_pfw_id'] is None:
         if config['fn_coadd'] is not None:
             config['orig_pfw_id'] = mdb.get_pfwid_from_coadd(dbi, config['fn_coadd'])
@@ -410,12 +401,12 @@ def run_mangle_workflow(config):
             config['orig_pfw_id'] = config['pfw_attempt_id']
     elif config['fn_coadd'] is None:
         config['fn_coadd'] = mdb.get_coadd_from_pfwid(dbi, config['orig_pfw_id'], config['band'])
-        
+
     nwgint_tab = get_nwgint_info(config['list_nwgint'], dbi, config['schema'],
                                  config['band'], config['orig_pfw_id'], config['fn_coadd'])
     if config['list_nwgint'] is None:
         config['hdr_from_db'] = True
-    Image_tab = get_redimg_info(config['list_redimg'], config['pfw_attempt_id'], 
+    Image_tab = get_redimg_info(config['list_redimg'], config['pfw_attempt_id'],
                                 config['bandnum'], dbi, config['schema'],
                                 config['zeropoint_table'], config['zsource'],
                                 config['zversion'], config['zflag'], nwgint_tab, config['im_to_tile'],
@@ -435,51 +426,51 @@ def run_mangle_workflow(config):
                     else:
                         linearr.append(str(Image_tab[k][i]))
                 csvfh.write(','.join(linearr) + '\n')
-                     
+
 
     # Add optional skyvar plotting?
 
-    print '\n########## Launching make_ccdgons'
+    print('\n########## Launching make_ccdgons')
     mc.ccdgons(config, Image_tab, nwgint_tab, dbi)
 
-    print '\n########## Launching make_ccdmolys'
+    print('\n########## Launching make_ccdmolys')
     mm.ccdmolys(config)
-    print 'Done'
+    print('Done')
 
-    print '\n########## Launching weightmolys'
+    print('\n########## Launching weightmolys')
     nmoly = wm.weightmolys(config, Image_tab)
-    print 'Done'
+    print('Done')
 
-    print '\n########## Launching make_starmask'
+    print('\n########## Launching make_starmask')
     sm.starmask(config, Image_tab, dbi)
-    print 'Done'
+    print('Done')
 
     if config['pltprefix'] is not None:
         fn_plt1 = config['pltprefix'] + '_comp1.png'
-        print '\n########## Creating comparison plot 1'
-        nc.make_comp(config['fn_coadd'], config['fn_molys_weight_pol'], 
+        print('\n########## Creating comparison plot 1')
+        nc.make_comp(config['fn_coadd'], config['fn_molys_weight_pol'],
                      config['fn_mask_star_pol'], config['fn_mask_bleed_pol'],
                      fn_plt1,
-                     limitx=np.arange(000, 10000, 10), limity=np.arange(00, 10000,10))
-        print 'Done'
+                     limitx=np.arange(000, 10000, 10), limity=np.arange(00, 10000, 10))
+        print('Done')
 
     if config['pltprefix'] is not None:
-        print '\n########## Creating comparison plot 2'
+        print('\n########## Creating comparison plot 2')
         fn_plt2 = config['pltprefix'] + '_comp2.png'
-        r1=np.random.randint(0, 10000-200)
-        r2=np.random.randint(0, 10000-200)
-        nc.make_comp(config['fn_coadd'], config['fn_molys_weight_pol'], 
+        r1 = np.random.randint(0, 10000 - 200)
+        r2 = np.random.randint(0, 10000 - 200)
+        nc.make_comp(config['fn_coadd'], config['fn_molys_weight_pol'],
                      config['fn_mask_star_pol'], config['fn_mask_bleed_pol'],
                      fn_plt2,
-                     limitx=np.arange(r1, r1+200, 1), limity=np.arange(r2, r2+200,1))
-        print 'Done'
+                     limitx=np.arange(r1, r1 + 200, 1), limity=np.arange(r2, r2 + 200, 1))
+        print('Done')
 
     if config['dbprefix'] is not None:
-        print '\n########## Creating csv files for database ingestion'
+        print('\n########## Creating csv files for database ingestion')
         dbif.make_csv_files(config, Image_tab, dbi, nmoly)
-        print 'Done'
+        print('Done')
 
-    print 'Finished mangle'
+    print('Finished mangle')
 
 
 ###################################################################

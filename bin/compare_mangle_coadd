@@ -1,17 +1,9 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 import argparse
-import ast
-import os
 import sys
-import re
 
 import numpy as np
-import numpy.lib.recfunctions as rfn
-
-import despyastro
-import despydb.desdbi as desdbi
-from despymisc import miscutils
 
 import despymangle.compare_mangle_coadd as nc
 
@@ -39,22 +31,22 @@ def main(argv):
     args = parse_args(argv)
 
     if args['fn_compare_plot1'] is not None:
-        print '########## Creating comparison plot 1'
-        nc.make_comp(args['coadd'], args['fn_molys_weight'], 
+        print("########## Creating comparison plot 1")
+        nc.make_comp(args['coadd'], args['fn_molys_weight'],
                      args['fn_mask_star'], args['fn_mask_bleed'],
-                     args['fn_compare_plot1'], 
-                     limitx=np.arange(0, 10000, 1), 
+                     args['fn_compare_plot1'],
+                     limitx=np.arange(0, 10000, 1),
                      limity=np.arange(0, 10000, 1))
-        print 'Done'
+        print('Done')
 
     if args['fn_compare_plot2'] is not None:
-        print '########## Creating comparison plot 2'
-        nc.make_comp(args['coadd'], args['fn_molys_weight'], 
+        print("########## Creating comparison plot 2")
+        nc.make_comp(args['coadd'], args['fn_molys_weight'],
                      args['fn_mask_star'], args['fn_mask_bleed'],
-                     args['fn_compare_plot2'], 
-                     limitx=np.arange(800, 1000, 1), 
+                     args['fn_compare_plot2'],
+                     limitx=np.arange(800, 1000, 1),
                      limity=np.arange(800, 1000, 1))
-        print 'Done'
+        print('Done')
 
 ###################################################################
 if __name__ == '__main__':

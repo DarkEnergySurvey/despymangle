@@ -1,14 +1,12 @@
-#!/usr/bin/env python
 
-import sys
 import numpy as np
-import pymangle as pym
 import matplotlib
 matplotlib.use('Agg')
 import pylab
+import fitsio
+import pymangle as pym
 
 from despyastro import wcsutil
-import fitsio
 import despymangle.EmptyMangle as em
 
 def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
@@ -42,13 +40,13 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
     A = np.array([limitx, limity])
     M = np.meshgrid(A[1], A[0])
 
-    fig = pylab.figure(figsize=(30, 5))
+    _ = pylab.figure(figsize=(30, 5))
 
     pylab.subplot(141)
     pylab.axis([np.min(limitx), np.max(limitx), np.min(limity), np.max(limity)])
-    pylab.pcolormesh(A[0], A[1], data2[M].T, 
-               vmin=np.min(data2[M]), 
-               vmax=np.max(data2[M]))
+    pylab.pcolormesh(A[0], A[1], data2[M].T,
+                     vmin=np.min(data2[M]),
+                     vmax=np.max(data2[M]))
     pylab.colorbar()
     pylab.title('Coadd weight')
 
@@ -60,27 +58,27 @@ def make_comp(coadd_fullname, fn_mg, fn_star, fn_bleed, plot_fullname,
     val = mg.weight(ra, dec)
     val2 = star.weight(ra, dec)
     val3 = bleed.weight(ra, dec)
-    val = val*(1-val2)*(1-val3)
+    val = val * (1 - val2) * (1 - val3)
     D = val.reshape((len(A[1]), len(A[0])), order='F')
 
     pylab.subplot(142)
     pylab.axis([np.min(limitx), np.max(limitx), np.min(limity), np.max(limity)])
-    pylab.pcolormesh(A[0], A[1], D, 
-               vmin=np.min(data2[M]), 
-               vmax=np.max(data2[M]))
+    pylab.pcolormesh(A[0], A[1], D,
+                     vmin=np.min(data2[M]),
+                     vmax=np.max(data2[M]))
     pylab.colorbar()
     pylab.title('Mangle weight')
 
 
     pylab.subplot(143)
     pylab.axis([np.min(limitx), np.max(limitx), np.min(limity), np.max(limity)])
-    pylab.pcolormesh(A[0], A[1], (data2[M].T-D), 
-               vmin=-np.max(data2[M])/5., 
-               vmax=np.max(data2[M])/5.)
+    pylab.pcolormesh(A[0], A[1], (data2[M].T-D),
+                     vmin=-np.max(data2[M])/5.,
+                     vmax=np.max(data2[M])/5.)
     pylab.colorbar()
     pylab.title('Difference (Coadd - Mangle)')
 
-    ng = np.where(D==0)
+    ng = np.where(D == 0)
     rap = data2[M].T/D
     rap[ng] = -1
     rap = np.ma.masked_values(rap, -1)
