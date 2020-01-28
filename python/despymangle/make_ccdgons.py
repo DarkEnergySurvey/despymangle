@@ -208,7 +208,7 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
         decB_h = np.mean([decB_g, decB_a])
 
         ### check if there streaks here!
-        if not streak_tab:
+        if streak_tab == False:
             h = []
         else:
             h = np.where(streak_tab['REDFILENAME'] == Image_tab['FILENAME'][i])[0]
