@@ -15,25 +15,25 @@ def ccdmolys(config):
 
     log = None
     if config['logdir'] is not None:
-        log = config['logdir']+'make_ccdmolys_'+tilename+'_'+band+'.log'
+        log = config['logdir'] + 'make_ccdmolys_' + tilename + '_' + band + '.log'
 
     manglebindir = config['manglebindir']
 
-    jfn_ccdgon = 'jccdgon%s_%s' % (tileid, band)
+    jfn_ccdgon = f"jccdgon{tileid}_{band}"
     copyfile(config['fn_ccdgon_pol'], jfn_ccdgon)
 
-    jfn_b = 'jb_%s_%s' % (tileid, band)
-    cmd = 'balkanize -Ba %s %s %s' % (mtol, jfn_ccdgon, jfn_b)
+    jfn_b = f"jb_{tileid}_{band}"
+    cmd = f"balkanize -Ba {mtol} {jfn_ccdgon} {jfn_b}"
     mu.runcmd(cmd, manglebindir, log)
 
-    jfn_u = 'ju_%s_%s' % (tileid, band)
-    cmd = 'unify %s %s' % (jfn_b, jfn_u)
+    jfn_u = f"ju_{tileid}_{band}"
+    cmd = f"unify {jfn_b} {jfn_u}"
     mu.runcmd(cmd, manglebindir, log)
 
     # get rid of polygons with areas less than 5e-14 str or greater than 6 str
-    jfn_mask = 'jmask_%s_%s' % (tileid, band)
-    numscheme = '%s%s00000000' % (pfwidtemp, config['bandnum'])
-    cmd = 'poly2poly -vn%s -k5e-14,6 %s %s' % (numscheme, jfn_u, jfn_mask)
+    jfn_mask = f"jmask_{tileid}_{band}"
+    numscheme = f"{pfwidtemp}{config['bandnum']}00000000"
+    cmd = f"poly2poly -vn{numscheme} -k5e-14,6 {jfn_u} {jfn_mask}"
     mu.runcmd(cmd, manglebindir, log)
 
     copyfile(jfn_mask, config['fn_mask_pol'])
@@ -43,4 +43,4 @@ def ccdmolys(config):
             if os.path.exists(tempf):
                 os.remove(tempf)
             else:
-                print "WARN: Could not find temporary file to delete (%s)" % tempf
+                print(f"WARN: Could not find temporary file to delete ({tempf})")

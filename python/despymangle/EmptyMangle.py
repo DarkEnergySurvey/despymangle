@@ -1,4 +1,4 @@
-class Empty_Mangle(object):
+class Empty_Mangle:
     """ Class to mimic a Mangle object when there are 0 input polygons
 
         The class takes no arguments

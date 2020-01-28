@@ -1,14 +1,12 @@
-#! /usr/bin/env python
-
 """ DB functions used by mangle """
 
+import numpy
 import despyastro
 from despymisc import miscutils
 import despydb
-import numpy
 
 ###################################################################
-def query2rec(query,dbhandle,verb=False):
+def query2rec(query, dbhandle, verb=False):
     """
         Queries DB and returns results as a numpy recarray.
     """
@@ -20,19 +18,19 @@ def query2rec(query,dbhandle,verb=False):
     tuples = cur.fetchall()
 
     # Return rec array
-    names  = [d[0] for d in cur.description]
+    names = [d[0] for d in cur.description]
 
-    if len(tuples) == 0:
+    if not tuples:
         types = []
         for d in cur.description:
             types.append((d[0], object))
         return numpy.recarray((0,), dtype=types)
-    return numpy.rec.array(tuples,names=names)
+    return numpy.rec.array(tuples, names=names)
 
 ###################################################################
 def get_coadd_from_pfwid(dbi, pfwid, band):
     """ Method to fing the coadd file name from the pfw attempt id
-    
+
         Parameters
         ----------
         dbi - database handle
@@ -46,14 +44,14 @@ def get_coadd_from_pfwid(dbi, pfwid, band):
         Returns
         -------
         The coadd file name associated with the pfw attempt id and band
-    
+
     """
     curs = dbi.cursor()
-    curs.execute("select filename from desfile where pfw_attempt_id=%i and filetype='coadd' and (filename like '%%_%s.%%' or filename like '%%_%s_%%') and compression is null" % (int(pfwid), band, band))
+    curs.execute(f"select filename from desfile where pfw_attempt_id={int(pfwid):d} and filetype='coadd' and (filename like '%_{band}.%' or filename like '%_{band}_%') and compression is null")
     try:
         results = curs.fetchone()[0]
     except:
-        print "Could not find coadd file for pfw_attempt_id: %i  band: %s" % (int(pfwid), band)
+        print(f"Could not find coadd file for pfw_attempt_id: {int(pfwid):d}  band: {band}")
         raise
     return results
 
@@ -64,7 +62,7 @@ def get_pfwid_from_coadd(dbi, coadd_file):
         Parameters
         ----------
         dbi - database handle
-        
+
         coadd_file - str
             The name of the coadd file to use
 
@@ -75,11 +73,11 @@ def get_pfwid_from_coadd(dbi, coadd_file):
     curs = dbi.cursor()
     tcoadd_file = coadd_file.split('/')[-1]
     if tcoadd_file.endswith('.fits'):
-        temp = "'%s' and compression is null" % tcoadd_file
+        temp = f"'{tcoadd_file}' and compression is null"
     else:
         parts = tcoadd_file.split('.fits')
-        temp = "'%s.fits' and compression='%s'" % (parts[0], parts[1])
-    sql = "select pfw_attempt_id from desfile where filename=%s" % temp
+        temp = f"'{parts[0]}.fits' and compression='{parts[1]}'"
+    sql = f"select pfw_attempt_id from desfile where filename={temp}"
 
     curs.execute(sql)
     results = curs.fetchall()
@@ -111,13 +109,13 @@ def get_nwgint_files(dbi, band, pfwid=None, coadd_file=None):
     if coadd_file is not None:
         tcoadd_file = coadd_file.split('/')[-1]
         if tcoadd_file.endswith('.fits'):
-            temp = "'%s' and compression is null" % tcoadd_file
+            temp = f"'{tcoadd_file}' and compression is null"
         else:
             parts = tcoadd_file.split('.fits')
-            temp = "'%s.fits' and compression='%s'" % (parts[0], parts[1])
-        sql = "select filename from desfile where id in(select parent_desfile_id from opm_was_derived_from start with child_desfile_id in (select id from desfile where filename=%s) connect by nocycle prior parent_desfile_id=child_desfile_id and level<5)and filetype='coadd_nwgint'" % temp
+            temp = f"'{parts[0]}.fits' and compression='{parts[1]}'"
+        sql = f"select filename from desfile where id in(select parent_desfile_id from opm_was_derived_from start with child_desfile_id in (select id from desfile where filename={temp}) connect by nocycle prior parent_desfile_id=child_desfile_id and level<5)and filetype='coadd_nwgint'"
     else:
-        sql = "select filename from image where pfw_attempt_id=%i and band='%s' and filetype='coadd_nwgint'" % (int(pfwid), band)
+        sql = f"select filename from image where pfw_attempt_id={int(pfwid):d} and band='{band}' and filetype='coadd_nwgint'"
 
     curs.execute(sql)
     results = curs.fetchall()
@@ -135,24 +133,20 @@ def get_mag_zero(dbi, filename, table, zsource, zversion, z2source, z2version, z
     """ get mag_zero and sigma_mag_zero"""
 
     curs = dbi.cursor()
-    curs.execute("select MAG_ZERO, SIGMA_MAG_ZERO, EXPNUM, CCDNUM from %s where imagename='%s' and source='%s' and version='%s'" %
-                 (table, filename, zsource, zversion))
+    curs.execute(f"select MAG_ZERO, SIGMA_MAG_ZERO, EXPNUM, CCDNUM from {table} where imagename='{filename}' and source='{zsource}' and version='{zversion}'")
     res = curs.fetchone()
     if res is not None:
-        mag_zero,sigma_mag_zero,expnum,ccd = res[0],res[1],res[2],res[3]
+        mag_zero, sigma_mag_zero, expnum, ccd = res[0], res[1], res[2], res[3]
     elif z2source is not None:
-        curs.execute("select MAG_ZERO, SIGMA_MAG_ZERO, EXPNUM, CCDNUM from %s where imagename='%s' and source='%s' and version='%s'" %
-                     (zpt2, filename, z2source, z2version))
+        curs.execute(f"select MAG_ZERO, SIGMA_MAG_ZERO, EXPNUM, CCDNUM from {zpt2} where imagename='{filename}' and source='{z2source}' and version='{z2version}'")
         res = curs.fetchone()
         if res is None:
-            raise Exception("Cannot locate a mag_zero value for %s" % filename)
-        else:
-            mag_zero, sigma_mag_zero,expnum,ccd = res[0],res[1],res[2],res[3]
+            raise Exception(f"Cannot locate a mag_zero value for {filename}")
+        mag_zero, sigma_mag_zero, expnum, ccd = res[0], res[1], res[2], res[3]
     else:
-        raise Exception("Cannot locate a mag_zero value for %s" % filename)
-    
-    curs.execute("select FGCM_GRY from %s where expnum=%i and ccdnum=%i and pfw_attempt_id in (select pfw_attempt_id from desfile where filename='%s' and compression is null)"
-                 % (gray_tbl, int(expnum), int(ccd), filename))
+        raise Exception(f"Cannot locate a mag_zero value for {filename}")
+
+    curs.execute(f"select FGCM_GRY from {gray_tbl} where expnum={int(expnum):d} and ccdnum={int(ccd):d} and pfw_attempt_id in (select pfw_attempt_id from desfile where filename='{filename}' and compression is null)")
     res = curs.fetchone()
     if res is not None:
         return mag_zero, sigma_mag_zero, res[0]
@@ -197,11 +191,11 @@ def get_redimg_files(dbi, nwgtab, table, zsource, zversion, zflag, im_to_tile, t
     if coadd_file is not None:
         tcoadd_file = coadd_file.split('/')[-1]
         if tcoadd_file.endswith('.fits'):
-            temp = "'%s' and compression is null" % tcoadd_file
+            temp = f"'{tcoadd_file}' and compression is null"
         else:
             parts = tcoadd_file.split('.fits')
-            temp = "'%s.fits' and compression='%s'" % (parts[0], parts[1])
-        sql = "select distinct(filename) from desfile where id in(select parent_desfile_id from opm_was_derived_from start with child_desfile_id in (select id from desfile where filename=%s) connect by nocycle prior parent_desfile_id=child_desfile_id and level<8)and filetype='red_immask'" % temp
+            temp = f"'{parts[0]}.fits' and compression='{parts[1]}'"
+        sql = f"select distinct(filename) from desfile where id in(select parent_desfile_id from opm_was_derived_from start with child_desfile_id in (select id from desfile where filename={temp}) connect by nocycle prior parent_desfile_id=child_desfile_id and level<8)and filetype='red_immask'"
         curs.execute(sql)
         results = curs.fetchall()
         for res in results:
@@ -209,17 +203,17 @@ def get_redimg_files(dbi, nwgtab, table, zsource, zversion, zflag, im_to_tile, t
     else:
         # for each of the nwgint file names get the corresponding red image header info
         for i in range(len(nwgtab['FILENAME'])):
-            sql = "select filename from image where expnum=%i and ccdnum=%i and filetype='red_immask' and filename in (select filename from %s where tilename='%s')" % (nwgtab['EXPNUM'][i], nwgtab['CCDNUM'][i], im_to_tile, tilename)
+            sql = f"select filename from image where expnum={nwgtab['EXPNUM'][i]:d} and ccdnum={nwgtab['CCDNUM'][i]:d} and filetype='red_immask' and filename in (select filename from {im_to_tile} where tilename='{tilename}')"
 
             curs.execute(sql)
             results = curs.fetchall()
             if len(results) != 1:
-                raise Exception("Incorrect number of files %i" % len(results))
+                raise Exception(f"Incorrect number of files {len(results)}")
 
             filelist.append(results[0][0])
         # get the mag_zero value
     for filename in filelist:
-        #curs.execute("select MAG_ZERO from %s where imagename='%s' and source='%s' and version='%s'" % 
+        #curs.execute("select MAG_ZERO from %s where imagename='%s' and source='%s' and version='%s'" %
         #             (table, filename, zsource, zversion))
         #mag_zero = curs.fetchone()
         #if mag_zero is not None:
@@ -241,7 +235,7 @@ def get_redimg_files(dbi, nwgtab, table, zsource, zversion, zflag, im_to_tile, t
                               'sigma_mag_zero': float(sigma_mag_zero),
                               'fgcm_gry': float(fgcm_gry)}
     return listinfo, filenames
-        
+
 ###################################################################
 def load_gtt_filename(dbi, redfiles):
     """ load ids into opm_filename_gtt table so can be used in sql joins """
@@ -265,15 +259,15 @@ def load_gtt_filename(dbi, redfiles):
 def load_gtt_red_from_nwgint(dbi, nwgintfiles=None):
     """ Read nwgint information from database """
 
-    # first load nwgint filenames into gtt 
+    # first load nwgint filenames into gtt
     # in order to find red filenames
     load_gtt_filename(dbi, nwgintfiles)
 
-    sql = """select dr.filename from desfile dr, desfile dn, 
-             opm_was_derived_from od, opm_filename_gtt g 
-             where dn.filename=g.filename and od.child_desfile_id=dn.id and 
+    sql = """select dr.filename from desfile dr, desfile dn,
+             opm_was_derived_from od, opm_filename_gtt g
+             where dn.filename=g.filename and od.child_desfile_id=dn.id and
              dr.id=parent_desfile_id and dr.filetype='red_immask'
-          """ 
+          """
 
     curs = dbi.cursor()
     curs.execute(sql)
@@ -283,7 +277,7 @@ def load_gtt_red_from_nwgint(dbi, nwgintfiles=None):
 
     # now load red filenames into gtt for future queries
     load_gtt_filename(dbi, redfiles)
-   
+
 
 ###################################################################
 def get_redimg_info(dbi, schema='', redfiles=None):
@@ -301,7 +295,7 @@ def get_redimg_info(dbi, schema='', redfiles=None):
 
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
-        miscutils.fwdebug_print("sql = %s" % sql)
+        miscutils.fwdebug_print(f"sql = {sql}")
 
     red_tab = despyastro.query2dict_of_columns(sql, dbi, True)
     red_tab["T_EFF_EXPTIME"] = red_tab["T_EFF"] * red_tab["EXPTIME"]
@@ -310,7 +304,8 @@ def get_redimg_info(dbi, schema='', redfiles=None):
 
 ###################################################################
 def get_streak_info(dbi, schema='', redfiles=None):
-    """ Read streak information from database """
+    """ Read streak information from database
+    """
 
     if redfiles is not None:
         load_gtt_filename(dbi, redfiles)
@@ -318,12 +313,16 @@ def get_streak_info(dbi, schema='', redfiles=None):
     sql = """select i.filename as redfilename, s.*
              from streak s, catalog c, image i, opm_filename_gtt g where
              s.filename=c.filename and i.filename=g.filename and
-             i.expnum=c.expnum and i.ccdnum=c.ccdnum and i.pfw_attempt_id=c.pfw_attempt_id
+             i.expnum=c.expnum and i.ccdnum=c.ccdnum and i.pfw_attempt_id=c.pfw_attempt_id and not
+             (s.ra_1=s.ra_2 and s.ra_1=s.ra_3 and s.ra_1=s.ra_4 and s.dec_1=s.dec_2 and s.dec_1=s.dec_3 and s.dec_1=s.dec_4)
           """
-
+#   RAG 20190204: added constraint to remove corner case streaks that have zero size
+#       (i.e. ra1=ra2=ra3=ra4 and dec1=dec2=dec3=dec4)
+#   This corner case appears to have arisen from the addition of the streak connector in single-epoch processing
+#   (speculating... for streaks with grazing incidence on another chip)
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
-        miscutils.fwdebug_print("sql = %s" % sql)
+        miscutils.fwdebug_print(f"sql = {sql}")
 
     streak_tab = query2rec(sql, dbhandle=dbi)
     return streak_tab
@@ -335,15 +334,15 @@ def get_satstar_info(dbi, schema='', redfiles=None, max_radius=400.0):
 
     if redfiles is not None:
         load_gtt_filename(dbi, redfiles)
-    
-    sql = """select i.filename as redfilename, s.*
+
+    sql = f"""select i.filename as redfilename, s.*
              from satstar s, catalog c, image i, opm_filename_gtt g where
-             s.filename=c.filename and s.radius<%f and s.radius>0.1 and i.filename=g.filename and
+             s.filename=c.filename and s.radius<{max_radius:f} and s.radius>0.1 and i.filename=g.filename and
              i.expnum=c.expnum and i.ccdnum=c.ccdnum and i.pfw_attempt_id=c.pfw_attempt_id
-          """ % (max_radius)
+          """
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
-        miscutils.fwdebug_print("sql = %s" % sql)
+        miscutils.fwdebug_print(f"sql = {sql}")
 
     satstar_tab = query2rec(sql, dbhandle=dbi)
     return satstar_tab
@@ -355,7 +354,7 @@ def get_bleedtrail_info(dbi, schema='', redfiles=None):
 
     if redfiles is not None:
         load_gtt_filename(dbi, redfiles)
-    
+
     sql = """select i.filename as redfilename, b.*
              from bleedtrail b, catalog c, image i, opm_filename_gtt g where
              b.filename=c.filename and i.filename=g.filename and
@@ -363,7 +362,7 @@ def get_bleedtrail_info(dbi, schema='', redfiles=None):
           """
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
-        miscutils.fwdebug_print("sql = %s" % sql)
+        miscutils.fwdebug_print(f"sql = {sql}")
 
     bleedtrail_tab = query2rec(sql, dbhandle=dbi)
     return bleedtrail_tab
@@ -375,15 +374,15 @@ def get_headfile_info(dbi, me_attid, redfiles=None):
     if redfiles is not None:
         load_gtt_filename(dbi, redfiles)
 
-    sql = """select i.filename as redfilename, m.filename
+    sql = f"""select i.filename as redfilename, m.filename
              from miscfile m, image i, opm_filename_gtt g where
              i.filename=g.filename and
-             i.expnum=m.expnum and i.ccdnum=m.ccdnum and m.pfw_attempt_id=%s
+             i.expnum=m.expnum and i.ccdnum=m.ccdnum and m.pfw_attempt_id={me_attid}
              and m.filetype='coadd_head_scamp'
-          """ % (me_attid)
+          """
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
-        miscutils.fwdebug_print("sql = %s" % sql)
+        miscutils.fwdebug_print(f"sql = {sql}")
 
     headfile_tab = despyastro.query2dict_of_columns(sql, dbi, True)
     return headfile_tab
@@ -394,16 +393,16 @@ def get_nwgint_info_from_reds(dbi, me_attid, redfiles=None):
 
     if redfiles is not None:
         load_gtt_filename(dbi, redfiles)
-    
-    sql = """select i1.filename as redfilename, i2.*
+
+    sql = f"""select i1.filename as redfilename, i2.*
              from image i1, image i2, opm_filename_gtt g where
              i1.filename=g.filename and
-             i1.expnum=i2.expnum and i1.ccdnum=i2.ccdnum and i2.pfw_attempt_id=%s
+             i1.expnum=i2.expnum and i1.ccdnum=i2.ccdnum and i2.pfw_attempt_id={me_attid}
              and i2.filetype='coadd_nwgint'
-          """ % (me_attid)
+          """
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
-        miscutils.fwdebug_print("sql = %s" % sql)
+        miscutils.fwdebug_print(f"sql = {sql}")
 
     nwgint_tab = despyastro.query2dict_of_columns(sql, dbi, True)
     return nwgint_tab
@@ -415,12 +414,12 @@ def get_nwgint_info(dbi, schema='', nwgintfiles=None):
 
     if nwgintfiles is not None:
         load_gtt_filename(dbi, nwgintfiles)
-    sql = """select i.* from image i, opm_filename_gtt g where 
+    sql = """select i.* from image i, opm_filename_gtt g where
              i.filename=g.filename and i.filetype='coadd_nwgint'
-          """ 
+          """
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
-        miscutils.fwdebug_print("sql = %s" % sql)
+        miscutils.fwdebug_print(f"sql = {sql}")
 
     nwgint_tab = despyastro.query2dict_of_columns(sql, dbi, True)
     return nwgint_tab
@@ -433,7 +432,7 @@ def get_tileid(tilename, db_section=None, des_services=None):
     dbh = despydb.desdbi.DesDbi(des_services, db_section, True)
 
     # Prepare the query
-    query = """select id from coaddtile_geom where tilename='%s'""" % tilename
+    query = f"select id from coaddtile_geom where tilename='{tilename}'"
 
     # Get the cursor
     cur = dbh.cursor()
@@ -448,27 +447,18 @@ def get_coadd_object_info(dbi, tilename, pfw_attempt_id,
                           ra_column, dec_column, dbschema=''):
     """ Get id and location information for coadd objects """
 
-    
-    sql = """select co.id, co.filename, co.object_number as "NUMBER", 
-                    co.{racol}, co.{deccol}
-             from {schema}coadd_object co, {schema}catalog c 
-             where co.filename=c.filename and 
-                   c.filetype='coadd_det_cat' and 
-                   c.tilename='{tname}' and 
-                   c.pfw_attempt_id={attid}
-          """.format(racol=ra_column, 
-                     deccol=dec_column, 
-                     schema=dbschema, 
-                     tname=tilename, 
-                     attid=pfw_attempt_id)
+
+    sql = f"""select co.id, co.filename, co.object_number as "NUMBER",
+                    co.{ra_column}, co.{dec_column}
+             from {dbschema}coadd_object co, {dbschema}catalog c
+             where co.filename=c.filename and
+                   c.filetype='coadd_det_cat' and
+                   c.tilename='{tilename}' and
+                   c.pfw_attempt_id={pfw_attempt_id}
+          """
 
     if miscutils.fwdebug_check(3, "MANGLEDB_DEBUG"):
-        miscutils.fwdebug_print("sql = %s" % sql)
+        miscutils.fwdebug_print(f"sql = {sql}")
 
     coadd_object_tab = query2rec(sql, dbhandle=dbi)
     return coadd_object_tab
-
-
-###################################################################
-if __name__ == '__main__':
-    pass
