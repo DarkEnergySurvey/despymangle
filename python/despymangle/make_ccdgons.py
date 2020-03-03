@@ -208,12 +208,12 @@ def ccdgons(config, Image_tab, nwgint_tab, head_tab, dbi=None):
         decB_h = np.mean([decB_g, decB_a])
 
         ### check if there streaks here!
-        if streak_tab == False:
+        if streak_tab is None or len(streak_tab) == 0:
             h = []
         else:
             h = np.where(streak_tab['REDFILENAME'] == Image_tab['FILENAME'][i])[0]
 
-        if not h: ## there is no streak for this image
+        if len(h) == 0: ## there is no streak for this image
             # Do ampA
             if CCDNUM != 31:
                 jfn_edges0 = f"jedges_{tileid}_{band}_{i:d}0"

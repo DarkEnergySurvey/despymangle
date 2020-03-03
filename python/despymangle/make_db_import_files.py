@@ -103,7 +103,7 @@ def make_syste_masks(keyword, config, Nmolys, Image_tab, molyids, exclude=None, 
             temp = []
         tab_exptime['MOLYGON_NUMBER'][i] = molyids[i]
 
-        if temp:
+        if len(temp) != 0:
             # quadtrature sum of the values
             if 'QSUM' in keys and temp is not None:
                 tab_exptime['QSUM'][i] = (np.sum(temp ** 2.)) ** 0.5
@@ -430,7 +430,7 @@ def make_csv_files(config, Image_tab, dbi, Nmolys):
                                                     config['dec_column'])
 
 
-    if not coadd_object_tab:
+    if coadd_object_tab is None or len(coadd_object_tab) == 0:
         raise Exception("Could not load data from coadd_object_tab.")
     fndb_pattern = config['dbprefix'] + '_%s.csv'
 
