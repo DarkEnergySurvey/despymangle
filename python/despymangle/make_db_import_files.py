@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
 
-# $Id: make_db_import_files.py 45798 2017-06-20 16:01:17Z friedel $
-# $Rev:: 45798                            $:  # Revision of last commit.
-# $LastChangedBy:: friedel                $:  # Author of last commit.
-# $LastChangedDate:: 2017-06-20 11:01:17 #$:  # Date of last commit.
-
-
 import os
 
 import matplotlib
@@ -159,6 +153,7 @@ def make_csv_coadd_object_molygon(config, fn_csv, coadd_object_tab):
 
     f = open(config['poltolys'], 'r')
     line = f.readline()
+    f.close()
     if line.startswith('0 polygons'):
         toly_mask = em.Empty_Mangle()
     else:
@@ -166,6 +161,7 @@ def make_csv_coadd_object_molygon(config, fn_csv, coadd_object_tab):
 
     f = open(config['fn_maglims_pol'], 'r')
     line = f.readline()
+    f.close()
     if line.startswith('0 polygons'):
         mangle_mask = em.Empty_Mangle()
     else:
@@ -173,6 +169,7 @@ def make_csv_coadd_object_molygon(config, fn_csv, coadd_object_tab):
 
     f = open(config['fn_mask_star_pol'], 'r')
     line = f.readline()
+    f.close()
     if line.startswith('0 polygons'):
         star_mask = em.Empty_Mangle()
     else:
@@ -180,6 +177,7 @@ def make_csv_coadd_object_molygon(config, fn_csv, coadd_object_tab):
 
     f = open(config['fn_mask_bleed_pol'], 'r')
     line = f.readline()
+    f.close()
     if line.startswith('0 polygons'):
         bleed_mask = em.Empty_Mangle()
     else:
@@ -399,6 +397,7 @@ def make_csv_molygon_ccdgon(config, fn_csv, molyids):
         n = len(aa) - 2
         for j in range(0, n):
             print(linefmt % (molyids[i], np.int(aa[2+j])), file=g)
+    redfh.close()
     g.close()
 
 ######################################################################

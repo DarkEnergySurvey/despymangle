@@ -1,9 +1,5 @@
-
-# $Id: mangle_utils.py 45223 2017-04-11 20:38:39Z friedel $
-# $Rev:: 45223                            $:  # Revision of last commit.
-# $LastChangedBy:: friedel                $:  # Author of last commit.
-# $LastChangedDate:: 2017-04-11 15:38:39 #$:  # Date of last commit.import numpy as np
-
+""" Mangle utility functions
+"""
 import os
 import subprocess
 import sys
@@ -392,6 +388,7 @@ def get_tileid_old(tiledir, project, tilename):
         line = f.readline().strip().split(',')
         if line[2] == tilename:
             tileid = line[0]
+    f.close()
     return tileid
 
 """
