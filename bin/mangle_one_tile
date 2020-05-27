@@ -10,6 +10,7 @@ import shutil
 import time
 
 import numpy as np
+import fitsio
 
 import despydb.desdbi as desdbi
 from despymisc import miscutils
@@ -445,20 +446,35 @@ def run_mangle_workflow(config):
     sm.starmask(config, Image_tab, dbi)
     print('Done')
 
+#
+#   Some preliminary work to take into account non-standard COADD size
+#
+    if (config['pltprefix'] is not None):
+        cfits = fitsio.FITS(config['fn_coadd'],vstorage='object')
+        ch = cfits['WGT'].read_header()
+        if ('ZNAXIS1' in ch):
+            nax=ch['ZNAXIS1']
+            nay=ch['ZNAXIS2']
+        else:
+            nax=ch['NAXIS1']
+            nay=ch['NAXIS2']
+        print(nax,nay)
+        cfits.close()
+    
     if config['pltprefix'] is not None:
         fn_plt1 = config['pltprefix'] + '_comp1.png'
         print('\n########## Creating comparison plot 1')
         nc.make_comp(config['fn_coadd'], config['fn_molys_weight_pol'],
                      config['fn_mask_star_pol'], config['fn_mask_bleed_pol'],
                      fn_plt1,
-                     limitx=np.arange(000, 10000, 10), limity=np.arange(00, 10000, 10))
+                     limitx=np.arange(000, nax, 10), limity=np.arange(00, nay, 10))
         print('Done')
 
     if config['pltprefix'] is not None:
         print('\n########## Creating comparison plot 2')
         fn_plt2 = config['pltprefix'] + '_comp2.png'
-        r1 = np.random.randint(0, 10000 - 200)
-        r2 = np.random.randint(0, 10000 - 200)
+        r1 = np.random.randint(0, nax - 200)
+        r2 = np.random.randint(0, nay - 200)
         nc.make_comp(config['fn_coadd'], config['fn_molys_weight_pol'],
                      config['fn_mask_star_pol'], config['fn_mask_bleed_pol'],
                      fn_plt2,
